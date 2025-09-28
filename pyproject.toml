@@ -1,0 +1,9 @@
+[project]
+name = "hst"
+version = "0.1.0"
+description = "Learning Git by building it."
+authors = [{name = "Jonny Comes", email = "jonnycomes@gmail.com"}]
+dependencies = []
+
+[project.scripts]
+hst = "hst.main:main"
