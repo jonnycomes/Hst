@@ -65,7 +65,6 @@ hst commit -m "commit message"
 ### `switch`
 - ✅ `switch <branch name>`
 - ✅ `switch -c <branch name>`
-- **Note:** Currently, you can switch to the branch you are currently on. This should be fixed later.
 
 ### `merge`
 - ◻️ `merge`

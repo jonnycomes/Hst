@@ -21,8 +21,10 @@ def run(argv):
         if len(argv) < 2:
             print("Usage: hst switch -c <branch>")
             sys.exit(1)
+        _compare_current_to_switch(repo_dir, argv[1])
         _create_and_switch(repo_dir, argv[1])
     else:
+        _compare_current_to_switch(repo_dir, argv[0])
         _switch_branch(repo_dir, argv[0])
 
 
@@ -56,3 +58,13 @@ def _create_and_switch(repo_dir: Path, name: str):
     # Update HEAD
     (repo_dir / "HEAD").write_text(f"ref: refs/heads/{name}")
     print(f"Created and switched to branch '{name}' at {commit_hash[:7]}")
+
+def _compare_current_to_switch(repo_dir: Path, name: str):
+    head_file = (repo_dir / "HEAD").read_text().strip()
+    current = None
+    if head_file.startswith("ref: "):
+        current = head_file.split("/")[-1]
+
+    if name == current:
+        print(f"Already on '{name}'")
+        sys.exit(1)
