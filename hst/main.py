@@ -1,9 +1,8 @@
 import sys
-from hst.commands import init, add
-
+from hst.commands import init, add, commit
 
 def main():
-    cmnds = ["init", "add"]
+    cmnds = ["init", "add", "commit"]
 
     if len(sys.argv) < 2 or sys.argv[1] not in cmnds:
         print(f"Usage: hst [{'|'.join(cmnds)}]")
@@ -18,6 +17,8 @@ def main():
             print(f"Usage: hst add <path> [<path> ...]")
             sys.exit(1)
         add.run(sys.argv[2:])
+    elif command == "commit":
+        commit.run(sys.argv[2:])
     else:
         print(f"Unknown command: {command}")
 

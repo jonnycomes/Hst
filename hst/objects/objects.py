@@ -1,8 +1,11 @@
 from __future__ import annotations
 import abc
+from pathlib import Path
 import hashlib
 import zlib
+import time
 from typing import List, Tuple
+from hst.repo import REPO_DIR, find_repo_root
 
 
 class Object(abc.ABC):
@@ -11,6 +14,11 @@ class Object(abc.ABC):
     Defines the common interface for objects, including serialization,
     deserialization, computing an object ID, and compression.
     """
+
+    def __init__(self):
+        # Persist the object in the repo after subclass init is done
+        repo_root = find_repo_root(Path.cwd())
+        self._store(repo_root)
 
     @property
     @abc.abstractmethod
@@ -43,6 +51,15 @@ class Object(abc.ABC):
         store = header + content
         return zlib.compress(store)
 
+    def _store(self, repo_root: Path):
+        """Write this object into .hst/objects/ by its oid if not already stored."""
+        oid = self.oid()
+        obj_path = repo_root / REPO_DIR / "objects" / oid[:2] / oid[2:]
+        if not obj_path.exists():
+            obj_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(obj_path, "wb") as f:
+                f.write(self.compressed())
+
 
 class Blob(Object):
     """Blob (Binary Large Object): stores the raw content of a file.
@@ -53,6 +70,7 @@ class Blob(Object):
 
     def __init__(self, data: bytes):
         self.data = data
+        super().__init__()
 
     @property
     def type(self) -> str:
@@ -81,6 +99,7 @@ class Tree(Object):
         - oid: SHA-1 hex of the referenced object
         """
         self.entries = entries
+        super().__init__()
 
     @property
     def type(self) -> str:
@@ -111,17 +130,32 @@ class Commit(Object):
     """Commit object: represents a snapshot of the repository at a point in time.
 
     Stores a reference to a tree (root directory snapshot), zero or more
-    parent commits, author and committer information, and a commit message.
+    parent commits, author and committer information, timestamps, and a commit message.
     """
 
     def __init__(
-        self, tree: str, parents: List[str], author: str, committer: str, message: str
+        self,
+        tree: str,
+        parents: list[str],
+        author: str,
+        committer: str,
+        message: str,
+        author_timestamp: int | None = None,
+        committer_timestamp: int | None = None,
+        author_tz: str = "-0000",
+        committer_tz: str = "-0000",
     ):
         self.tree = tree
         self.parents = parents
         self.author = author
         self.committer = committer
         self.message = message
+        self.author_timestamp = author_timestamp or int(time.time())
+        self.committer_timestamp = committer_timestamp or int(time.time())
+        self.author_tz = author_tz
+        self.committer_tz = committer_tz
+
+        super().__init__()
 
     @property
     def type(self) -> str:
@@ -131,30 +165,53 @@ class Commit(Object):
         lines = [f"tree {self.tree}"]
         for p in self.parents:
             lines.append(f"parent {p}")
-        lines.append(f"author {self.author}")
-        lines.append(f"committer {self.committer}")
+        lines.append(f"author {self.author} {self.author_timestamp} {self.author_tz}")
+        lines.append(f"committer {self.committer} {self.committer_timestamp} {self.committer_tz}")
         lines.append("")  # blank line before message
         lines.append(self.message)
         return "\n".join(lines).encode()
 
     @classmethod
-    def deserialize(cls, data: bytes) -> Commit:
+    def deserialize(cls, data: bytes) -> "Commit":
         text = data.decode()
         headers, message = text.split("\n\n", 1)
         tree = ""
         parents = []
         author = ""
         committer = ""
+        author_timestamp = None
+        committer_timestamp = None
+        author_tz = "-0000"
+        committer_tz = "-0000"
+
         for line in headers.split("\n"):
             if line.startswith("tree "):
                 tree = line[5:]
             elif line.startswith("parent "):
                 parents.append(line[7:])
             elif line.startswith("author "):
-                author = line[7:]
+                parts = line[7:].rsplit(" ", 2)
+                author = parts[0]
+                author_timestamp = int(parts[1])
+                author_tz = parts[2]
             elif line.startswith("committer "):
-                committer = line[10:]
-        return cls(tree, parents, author, committer, message.strip())
+                parts = line[10:].rsplit(" ", 2)
+                committer = parts[0]
+                committer_timestamp = int(parts[1])
+                committer_tz = parts[2]
+
+        return cls(
+            tree,
+            parents,
+            author,
+            committer,
+            message.strip(),
+            author_timestamp,
+            committer_timestamp,
+            author_tz,
+            committer_tz,
+        )
+
 
 
 class Tag(Object):
@@ -171,6 +228,8 @@ class Tag(Object):
         self.tag = tag
         self.tagger = tagger
         self.message = message
+
+        super().__init__()
 
     @property
     def type(self) -> str:
