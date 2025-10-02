@@ -1,77 +1,94 @@
-# Learning Git by building it.
+# Hst: Learning Git by Rebuilding It (slower, smaller, in Python)
 
-## Commands
+**Hst** (pronounced Hist -- short for History) is a personal project to help me learn about Git internals by implementing a simplified version of Git in Python. This project is for educational purposes and is not intended to be a fully-featured Git alternative.
 
-◻️ `init`
-- ✅ `init`
-- ◻️ Missing files in hooks
+## Installation
 
-◻️ `add`
+To get started with **Hst**, follow these steps:
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/jonnycomes/Hst.git
+   cd hst
+   ```
+
+2. Install the package in editable mode:
+
+   ```bash
+   pip install -e .
+   ```
+
+## Usage
+
+Once installed, you can create a Hst repo with the command:
+
+```bash
+hst init
+```
+Then you can `add` and `commit` files to your Hst repo by mimicking Git commands:
+
+```bash
+hst add <file>
+hst commit -m "commit message"
+```
+
+
+
+## Commands That Either Work or Are Coming Soon
+
+### `init`
+- ✅ `init` (missing files in hooks)
+
+### `add`
 - ✅ `add <file> [<file>...]`
 - ✅ `add <dir> [...]`
-- ◻️ make it so that index is a binary file (currently just a JSON)
 - ◻️ `add .`
 - ◻️ `add --all`
+- **Note:** Currently, the index is just a JSON. Making it a binary file will come later. 
 
-◻️ `commit`
+### `commit`
 - ✅ `commit`
 - ✅ `commit -m "message"`
-- ◻️ Don't commit if nothing is staged
 - ◻️ `commit --amend`
+- **Note:** Currently, you can commit if nothing new is staged. This should be fixed later.
 
-◻️ `status`
+### `status`
+- ◻️ `status`
 
-◻️ `branch`
-- ◻️ `branch <branch name>`
+### `branch`
+- ✅ `branch`
+- ✅ `branch <branch name>`
+- ✅ `branch -D <branch name>`
 - ◻️ `branch -d <branch name>`
 
-◻️ `switch`
+### `switch`
 - ◻️ `switch <branch name>`
 - ◻️ `switch -c <branch name>`
 
 
-◻️ `merge`
+### `merge`
+- ◻️ `merge`
 
-◻️ `log`
-
+### `log`
+- ◻️ `log`
 - ◻️ `--oneline`
 - ◻️ `--graph`
 
-◻️ `rebase`
+### `rebase`
+- ◻️ `rebase -i <commit-ish>`
 
-◻️ `remote`
+### `remote`
+- ◻️ `remote -v`
+- ◻️ `remote add origin <repo>`
 
-◻️ `push`
+### `push`
+- ◻️ (comming soon)
 
-◻️ `pull`
+### `pull`
+- ◻️ (comming soon)
 
-◻️ `fetch`
+### `fetch`
+- ◻️ (comming soon)
 
-
-
-
-## Classes
-
-✅ Objects:
-
-- ✅ Blob
-- ✅ Tree
-- ✅ Commit
-- ✅ Tag
-
-## Steps:
-
-	0. Quick tour of Git
-	1. init (no hooks)
-		- main.py (bare bones)
-		- repo.py
-			- just REPO_DIR
-		- init.py
-	2. add
-		- main.py
-			- add commands=[]
-		- objects.py (just Blob)
-		- add.py
-		- repo.find_repo_root()
-	3. commit
 
