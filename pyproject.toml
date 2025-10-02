@@ -1,7 +1,7 @@
 [project]
 name = "hst"
 version = "0.1.0"
-description = "Learning Git by building it."
+description = "Learning Git by Rebuilding It (slower, smaller, in Python)"
 authors = [{name = "Jonny Comes", email = "jonnycomes@gmail.com"}]
 dependencies = []
 
