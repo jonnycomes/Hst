@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 REPO_DIR = ".hst"
@@ -10,4 +11,5 @@ def find_repo_root(start_dir: Path) -> Path:
         if (path / REPO_DIR).exists():
             return path
         path = path.parent
-    raise RuntimeError("Not inside a Hst repository")
+    print("Not inside a Hst repository")
+    sys.exit(1)

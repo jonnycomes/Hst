@@ -7,3 +7,6 @@ dependencies = []
 
 [project.scripts]
 hst = "hst.main:main"
+
+[tool.setuptools]
+packages = ["hst"]
