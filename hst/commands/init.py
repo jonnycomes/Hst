@@ -1,6 +1,7 @@
 from pathlib import Path
 from hst.repo import REPO_DIR
 
+
 def run():
     """
     Initialize a new repository.

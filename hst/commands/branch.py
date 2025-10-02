@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from hst.repo import find_repo_root, REPO_DIR
 
+
 def run(argv):
     """
     Run the branch command
@@ -35,6 +36,7 @@ def _list_branches(repo_dir: Path):
         prefix = "*" if b == current else " "
         print(f"{prefix} {b}")
 
+
 def _create_branch(repo_dir: Path, name: str):
     head = (repo_dir / "HEAD").read_text().strip()
     if head.startswith("ref: "):
@@ -50,6 +52,7 @@ def _create_branch(repo_dir: Path, name: str):
 
     branch_path.write_text(commit_hash)
     print(f"Created branch {name} at {commit_hash[:7]}")
+
 
 def _delete_branch(repo_dir: Path, name: str):
     head_file = (repo_dir / "HEAD").read_text().strip()
@@ -68,4 +71,3 @@ def _delete_branch(repo_dir: Path, name: str):
 
     branch_path.unlink()
     print(f"Deleted branch {name}")
-

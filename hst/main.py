@@ -1,6 +1,7 @@
 import sys
 from hst.commands import init, add, commit, branch
 
+
 def main():
     cmnds = ["init", "add", "commit", "branch"]
 
@@ -14,7 +15,7 @@ def main():
         init.run()
     elif command == "add":
         if len(sys.argv) < 3:
-            print(f"Usage: hst add <path> [<path> ...]")
+            print("Usage: hst add <path> [<path> ...]")
             sys.exit(1)
         add.run(sys.argv[2:])
     elif command == "commit":

@@ -166,7 +166,9 @@ class Commit(Object):
         for p in self.parents:
             lines.append(f"parent {p}")
         lines.append(f"author {self.author} {self.author_timestamp} {self.author_tz}")
-        lines.append(f"committer {self.committer} {self.committer_timestamp} {self.committer_tz}")
+        lines.append(
+            f"committer {self.committer} {self.committer_timestamp} {self.committer_tz}"
+        )
         lines.append("")  # blank line before message
         lines.append(self.message)
         return "\n".join(lines).encode()
@@ -211,7 +213,6 @@ class Commit(Object):
             author_tz,
             committer_tz,
         )
-
 
 
 class Tag(Object):

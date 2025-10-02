@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import List
-import zlib
 from hst.objects import Blob
 from hst.repo import find_repo_root, REPO_DIR
 
@@ -12,7 +11,6 @@ def run(paths: List[str]):
     Stage the given paths for commit.
     """
     repo_root = find_repo_root(Path.cwd())
-    objects_dir = repo_root / REPO_DIR / "objects"
     index_file = repo_root / REPO_DIR / "index"
 
     files_to_add = collect_files(paths, repo_root)
