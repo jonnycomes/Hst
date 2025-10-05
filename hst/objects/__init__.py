@@ -1,3 +1,3 @@
-from .objects import Blob, Tree, Commit, Tag
+from .objects import Object, Blob, Tree, Commit, Tag
 
-__all__ = ["Blob", "Tree", "Commit", "Tag"]
+__all__ = ["Object", "Blob", "Tree", "Commit", "Tag"]

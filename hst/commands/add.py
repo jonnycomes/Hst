@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List
 from hst.objects import Blob
 from hst.repo import find_repo_root, REPO_DIR
-
+import sys
 import json
 
 
@@ -10,6 +10,10 @@ def run(paths: List[str]):
     """
     Stage the given paths for commit.
     """
+    if not paths:
+        print("Usage: hst add <path> [<path> ...]")
+        sys.exit(1)
+
     repo_root = find_repo_root(Path.cwd())
     index_file = repo_root / REPO_DIR / "index"
 

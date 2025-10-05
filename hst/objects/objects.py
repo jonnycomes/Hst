@@ -15,10 +15,11 @@ class Object(abc.ABC):
     deserialization, computing an object ID, and compression.
     """
 
-    def __init__(self):
-        # Persist the object in the repo after subclass init is done
-        repo_root = find_repo_root(Path.cwd())
-        self._store(repo_root)
+    def __init__(self, store: bool = True):
+        if store:
+            # Persist the object in the repo after subclass init is done
+            repo_root = find_repo_root(Path.cwd())
+            self._store(repo_root)
 
     @property
     @abc.abstractmethod
@@ -68,9 +69,9 @@ class Blob(Object):
     metadata such as the filename or file permissions.
     """
 
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes, store: bool = True):
         self.data = data
-        super().__init__()
+        super().__init__(store)
 
     @property
     def type(self) -> str:
@@ -80,8 +81,8 @@ class Blob(Object):
         return self.data
 
     @classmethod
-    def deserialize(cls, data: bytes) -> Blob:
-        return cls(data)
+    def deserialize(cls, data: bytes, store: bool = True) -> Blob:
+        return cls(data, store)
 
 
 class Tree(Object):
@@ -91,7 +92,7 @@ class Tree(Object):
     the file mode. Trees represent the hierarchical structure of directories.
     """
 
-    def __init__(self, entries: List[Tuple[str, str, str]]):
+    def __init__(self, entries: List[Tuple[str, str, str]], store: bool = True):
         """
         entries: list of (mode, name, oid) tuples
         - mode: file mode string (e.g., "100644", "040000")
@@ -99,7 +100,7 @@ class Tree(Object):
         - oid: SHA-1 hex of the referenced object
         """
         self.entries = entries
-        super().__init__()
+        super().__init__(store)
 
     @property
     def type(self) -> str:
@@ -113,7 +114,7 @@ class Tree(Object):
         return out
 
     @classmethod
-    def deserialize(cls, data: bytes) -> Tree:
+    def deserialize(cls, data: bytes, store: bool = True) -> Tree:
         entries = []
         i = 0
         while i < len(data):
@@ -123,7 +124,7 @@ class Tree(Object):
             oid = data[j + 1 : j + 21].hex()
             entries.append((mode, name, oid))
             i = j + 21
-        return cls(entries)
+        return cls(entries, store)
 
 
 class Commit(Object):
@@ -144,6 +145,7 @@ class Commit(Object):
         committer_timestamp: int | None = None,
         author_tz: str = "-0000",
         committer_tz: str = "-0000",
+        store: bool = True,
     ):
         self.tree = tree
         self.parents = parents
@@ -155,7 +157,7 @@ class Commit(Object):
         self.author_tz = author_tz
         self.committer_tz = committer_tz
 
-        super().__init__()
+        super().__init__(store)
 
     @property
     def type(self) -> str:
@@ -174,7 +176,7 @@ class Commit(Object):
         return "\n".join(lines).encode()
 
     @classmethod
-    def deserialize(cls, data: bytes) -> "Commit":
+    def deserialize(cls, data: bytes, store: bool = True) -> "Commit":
         text = data.decode()
         headers, message = text.split("\n\n", 1)
         tree = ""
@@ -212,6 +214,7 @@ class Commit(Object):
             committer_timestamp,
             author_tz,
             committer_tz,
+            store,
         )
 
 
@@ -223,14 +226,14 @@ class Tag(Object):
     trees, blobs, or even other tags.
     """
 
-    def __init__(self, object_id: str, type_: str, tag: str, tagger: str, message: str):
+    def __init__(self, object_id: str, type_: str, tag: str, tagger: str, message: str, store: bool = True):
         self.object_id = object_id
         self.object_type = type_
         self.tag = tag
         self.tagger = tagger
         self.message = message
 
-        super().__init__()
+        super().__init__(store)
 
     @property
     def type(self) -> str:
@@ -248,7 +251,7 @@ class Tag(Object):
         return "\n".join(lines).encode()
 
     @classmethod
-    def deserialize(cls, data: bytes) -> Tag:
+    def deserialize(cls, data: bytes, store: bool = True) -> Tag:
         text = data.decode()
         headers, message = text.split("\n\n", 1)
         object_id = ""
@@ -264,4 +267,4 @@ class Tag(Object):
                 tag = line[4:]
             elif line.startswith("tagger "):
                 tagger = line[7:]
-        return cls(object_id, type_, tag, tagger, message.strip())
+        return cls(object_id, type_, tag, tagger, message.strip(), store)

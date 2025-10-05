@@ -35,7 +35,7 @@ hst commit -m "commit message"
 
 
 
-## Commands That Either Work or Are Coming Soon
+## Commands That Either Work (✅) or Are Coming Soon (◻️)
 
 ### `init`
 - ✅ `init` (missing files in hooks)
@@ -43,7 +43,7 @@ hst commit -m "commit message"
 ### `add`
 - ✅ `add <file> [<file>...]`
 - ✅ `add <dir> [...]`
-- ◻️ `add .`
+- ✅ `add .`
 - ◻️ `add --all`
 - **Note:** Currently, the index is just a JSON. Making it a binary file will come later. 
 
@@ -51,10 +51,10 @@ hst commit -m "commit message"
 - ✅ `commit`
 - ✅ `commit -m "message"`
 - ◻️ `commit --amend`
-- **Note:** Currently, you can commit if nothing new is staged. This should be fixed later.
+- **Note:** Currently, you can commit even if nothing new is staged. This should be fixed later.
 
 ### `status`
-- ◻️ `status`
+- ✅ `status [<path> ...]`
 
 ### `branch`
 - ✅ `branch`

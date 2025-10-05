@@ -1,14 +1,12 @@
 import sys
 from pathlib import Path
+from typing import List
 from hst.repo import find_repo_root, REPO_DIR
 
 
-def run(argv):
+def run(argv: List[str]):
     """
     Run the switch command.
-    Usage:
-      hst switch <branch>       # switch to existing branch
-      hst switch -c <branch>    # create a new branch and switch to it
     """
     repo_root = find_repo_root(Path.cwd())
     repo_dir = repo_root / REPO_DIR

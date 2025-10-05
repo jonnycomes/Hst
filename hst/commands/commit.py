@@ -88,46 +88,43 @@ def _build_tree(repo_root: Path, index: dict, base_path: Optional[Path] = None) 
         base_path = Path("")
 
     entries = []
-
-    # Collect files and directories directly under base_path
-    children = {}
+    
+    # Find all direct children (files and subdirectories) under base_path
+    direct_children = {}  # name -> oid (for files) or None (for directories)
+    
     for path_str, blob_oid in index.items():
         path = Path(path_str)
-        if (
-            base_path == Path("")
-            or base_path in path.parents
-            or base_path == path.parent
-        ):
-            # Relative path from base_path
+        
+        # Skip if not under current base_path
+        if base_path != Path(""):
             try:
                 rel_path = path.relative_to(base_path)
             except ValueError:
                 continue
-            parts = rel_path.parts
-            if len(parts) == 1:  # Direct child of base_path
-                children[parts[0]] = blob_oid
+        else:
+            rel_path = path
+            
+        # Get the immediate child name
+        if len(rel_path.parts) == 1:
+            # This is a direct file child
+            direct_children[rel_path.parts[0]] = blob_oid
+        elif len(rel_path.parts) > 1:
+            # This indicates a subdirectory
+            subdir_name = rel_path.parts[0]
+            if subdir_name not in direct_children:
+                direct_children[subdir_name] = None  # Mark as directory
 
-    # Separate files and directories
-    files = {name: oid for name, oid in children.items() if Path(name).is_file()}
-    dirs = {
-        name: oid
-        for name, oid in children.items()
-        if Path(name).is_dir() or "/" in name
-    }
-
-    # Add files
-    for name, oid in files.items():
-        entries.append(("100644", name, oid))
-
-    # Add subdirectories recursively
-    for dir_name in set(path.parts[0] for path in (Path(k) for k in dirs.keys())):
-        # Collect all entries under this subdirectory
-        sub_index = {k: v for k, v in index.items() if Path(k).parts[0] == dir_name}
-        sub_tree = _build_tree(
-            repo_root, sub_index, base_path=Path(base_path) / dir_name
-        )
-        sub_oid = sub_tree.write(repo_root)  # write tree to objects
-        entries.append(("040000", dir_name, sub_oid))
+    # Process direct children
+    for name, oid in direct_children.items():
+        if oid is not None:
+            # It's a file
+            entries.append(("100644", name, oid))
+        else:
+            # It's a directory - recursively build its tree
+            subdir_path = base_path / name if base_path != Path("") else Path(name)
+            sub_tree = _build_tree(repo_root, index, subdir_path)
+            sub_oid = sub_tree.oid()  # Tree stores itself on creation
+            entries.append(("040000", name, sub_oid))
 
     # Sort entries by name (like Git does)
     entries.sort(key=lambda x: x[1])

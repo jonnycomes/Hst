@@ -1,9 +1,10 @@
 import sys
 from pathlib import Path
+from typing import List
 from hst.repo import find_repo_root, REPO_DIR
 
 
-def run(argv):
+def run(argv: List[str]):
     """
     Run the branch command
     """
