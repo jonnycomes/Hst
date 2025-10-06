@@ -12,14 +12,22 @@ def run(argv: List[str]):
     Run the status command.
     """
     repo_root, hst_dir = get_repo_paths()
+    
+    # Parse path arguments
+    filter_paths = _parse_path_arguments(argv, repo_root) if argv else None
 
     branch, head_tree = _get_branch_and_head_tree(hst_dir)
     index = read_index(hst_dir)
-    worktree = _scan_working_tree(repo_root)
+    worktree = _scan_working_tree(repo_root, filter_paths)
+
+    # Filter other collections by paths if specified
+    if filter_paths:
+        head_tree = _filter_tree_by_paths(head_tree, filter_paths)
+        index = _filter_index_by_paths(index, filter_paths)
 
     staged, unstaged, untracked = _classify_changes(head_tree, index, worktree)
 
-    print(f"On branch {branch}")  # TODO: resolve current branch name
+    print(f"On branch {branch}")
 
     if staged:
         print("\nChanges to be committed:")
@@ -55,14 +63,20 @@ def _get_branch_and_head_tree(hst_dir: Path) -> Dict[str, str]:
     return branch, _read_tree_recursive(hst_dir, commit_obj.tree)
 
 
-def _scan_working_tree(repo_root: Path) -> Dict[str, str]:
+def _scan_working_tree(repo_root: Path, filter_paths: List[str] = None) -> Dict[str, str]:
     """
     Walk repo_root (excluding .hst) and hash each file into {path: oid}.
+    If filter_paths is provided, only scan files matching those paths.
     """
     mapping = {}
     for path in repo_root.rglob("*"):
         if path.is_file() and HST_DIRNAME not in path.parts:
             rel = str(path.relative_to(repo_root))
+            
+            # Apply path filter if specified
+            if filter_paths and not _path_matches_filter(rel, filter_paths):
+                continue
+                
             with open(path, "rb") as f:
                 data = f.read()
             blob = Blob(data, store=False)  # Don't store, just compute hash
@@ -126,3 +140,80 @@ def _read_tree_recursive(hst_dir: Path, oid: str, prefix="") -> Dict[str, str]:
         else:
             mapping[path] = child_oid
     return mapping
+
+
+def _parse_path_arguments(argv: List[str], repo_root: Path) -> List[str]:
+    """
+    Parse and validate path arguments.
+    Returns a list of normalized relative paths from repo root.
+    """
+    filter_paths = []
+    for arg in argv:
+        path = Path(arg)
+        
+        # Convert to absolute path
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        
+        # Normalize the path
+        try:
+            path = path.resolve()
+        except (OSError, RuntimeError):
+            print(f"Warning: Cannot resolve path '{arg}', skipping")
+            continue
+            
+        # Check if path is within repo
+        try:
+            rel_path = path.relative_to(repo_root)
+            filter_paths.append(str(rel_path))
+        except ValueError:
+            print(f"Warning: Path '{arg}' is not within the repository, skipping")
+            continue
+    
+    return filter_paths
+
+
+def _filter_tree_by_paths(tree: Dict[str, str], filter_paths: List[str]) -> Dict[str, str]:
+    """Filter tree entries to only include paths matching the filter."""
+    if not filter_paths:
+        return tree
+        
+    filtered = {}
+    for path, oid in tree.items():
+        if _path_matches_filter(path, filter_paths):
+            filtered[path] = oid
+    return filtered
+
+
+def _filter_index_by_paths(index: Dict[str, str], filter_paths: List[str]) -> Dict[str, str]:
+    """Filter index entries to only include paths matching the filter."""
+    if not filter_paths:
+        return index
+        
+    filtered = {}
+    for path, oid in index.items():
+        if _path_matches_filter(path, filter_paths):
+            filtered[path] = oid
+    return filtered
+
+
+def _path_matches_filter(file_path: str, filter_paths: List[str]) -> bool:
+    """
+    Check if a file path should be included based on filter paths.
+    Returns True if the file_path matches any of the filter_paths.
+    """
+    file_path_parts = Path(file_path).parts
+    
+    for filter_path in filter_paths:
+        filter_path_parts = Path(filter_path).parts
+        
+        # Exact match
+        if file_path == filter_path:
+            return True
+            
+        # Check if file is under a directory filter
+        if len(file_path_parts) >= len(filter_path_parts):
+            if file_path_parts[:len(filter_path_parts)] == filter_path_parts:
+                return True
+    
+    return False

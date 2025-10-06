@@ -55,7 +55,7 @@ hst commit -m "commit message"
 
 ### `status`
 - ✅ `hst status`
-- ◻️ `hst status <path> [<path> ...]`
+- ✅ `hst status <path> [<path> ...]`
 
 ### `branch`
 - ✅ `hst branch`
