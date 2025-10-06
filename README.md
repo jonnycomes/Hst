@@ -38,48 +38,49 @@ hst commit -m "commit message"
 ## Commands That Either Work (✅) or Are Coming Soon (◻️)
 
 ### `init`
-- ✅ `init` (missing files in hooks)
+- ✅ `hst init` (missing files in hooks)
 
 ### `add`
-- ✅ `add <file> [<file>...]`
-- ✅ `add <dir> [...]`
-- ✅ `add .`
-- ◻️ `add --all`
+- ✅ `hst add <file> [<file>...]`
+- ✅ `hst add <dir> [...]`
+- ✅ `hst add .`
+- ◻️ `hst add --all`
 - **Note:** Currently, the index is just a JSON. Making it a binary file will come later. 
 
 ### `commit`
-- ✅ `commit`
-- ✅ `commit -m "message"`
-- ◻️ `commit --amend`
+- ✅ `hst commit`
+- ✅ `hst commit -m "message"`
+- ◻️ `hst commit --amend`
 - **Note:** Currently, you can commit even if nothing new is staged. This should be fixed later.
 
 ### `status`
-- ✅ `status [<path> ...]`
+- ✅ `hst status`
+- ◻️ `hst status <path> [<path> ...]`
 
 ### `branch`
-- ✅ `branch`
-- ✅ `branch <branch name>`
-- ✅ `branch -D <branch name>`
-- ◻️ `branch -d <branch name>`
+- ✅ `hst branch`
+- ✅ `hst branch <branch name>`
+- ✅ `hst branch -D <branch name>`
+- ◻️ `hst branch -d <branch name>`
 
 ### `switch`
-- ✅ `switch <branch name>`
-- ✅ `switch -c <branch name>`
+- ✅ `hst switch <branch name>`
+- ✅ `hst switch -c <branch name>`
 
 ### `merge`
-- ◻️ `merge`
+- ◻️ `hst merge`
 
 ### `log`
-- ◻️ `log`
-- ◻️ `--oneline`
-- ◻️ `--graph`
+- ◻️ `hst log`
+- ◻️ `hst log --oneline`
+- ◻️ `hst log --graph`
 
 ### `rebase`
-- ◻️ `rebase -i <commit-ish>`
+- ◻️ `hst rebase -i <commit-ish>`
 
 ### `remote`
-- ◻️ `remote -v`
-- ◻️ `remote add origin <repo>`
+- ◻️ `hst remote -v`
+- ◻️ `hst remote add origin <repo>`
 
 ### `push`
 - ◻️ (comming soon)

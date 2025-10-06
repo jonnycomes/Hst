@@ -1,12 +1,12 @@
 from pathlib import Path
-from hst.repo import REPO_DIR
+from hst.repo import HST_DIRNAME
 
 
 def run():
     """
     Initialize a new repository.
     """
-    repo_path = Path(REPO_DIR)
+    repo_path = Path(HST_DIRNAME)
     repo_path_already_exists = repo_path.exists()
 
     # Create the repo directory

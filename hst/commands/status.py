@@ -1,22 +1,20 @@
-import sys
-import json
-import hashlib
-import zlib
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
-from hst.repo import find_repo_root, REPO_DIR
-from hst.objects import Blob, Tree, Commit, Object
+from typing import Dict, List, Tuple
+from hst.repo import get_repo_paths, HST_DIRNAME
+from hst.repo.head import get_current_commit_oid, get_current_branch
+from hst.repo.index import read_index
+from hst.repo.objects import read_object
+from hst.hst_objects import Blob, Tree, Commit
 
 
 def run(argv: List[str]):
     """
     Run the status command.
     """
-    repo_root = find_repo_root(Path.cwd())
-    repo_dir = repo_root / REPO_DIR
+    repo_root, hst_dir = get_repo_paths()
 
-    branch, head_tree = _get_branch_and_head_tree(repo_dir)
-    index = _read_index(repo_dir)
+    branch, head_tree = _get_branch_and_head_tree(hst_dir)
+    index = read_index(hst_dir)
     worktree = _scan_working_tree(repo_root)
 
     staged, unstaged, untracked = _classify_changes(head_tree, index, worktree)
@@ -39,43 +37,22 @@ def run(argv: List[str]):
             print(f"    {path}")
 
 
-def _get_branch_and_head_tree(repo_dir: Path) -> Dict[str, str]:
+def _get_branch_and_head_tree(hst_dir: Path) -> Dict[str, str]:
     """
     Read HEAD, resolve to commit, and load the commit's tree mapping.
     Returns branch, {path: oid}.
     """
-    head_path = repo_dir / "HEAD"
-    if not head_path.exists():
-        return None, {}
+    branch = get_current_branch(hst_dir)
+    commit_oid = get_current_commit_oid(hst_dir)
 
-    head_val = head_path.read_text().strip()
-    if head_val.startswith("ref: "):
-        ref_path = repo_dir / head_val[5:]
-        if not ref_path.exists():
-            return None, {}
-        commit_oid = ref_path.read_text().strip()
-        branch = head_val.split("/")[-1]
-    else:
-        commit_oid = head_val
-        branch = head_val
+    if not commit_oid:
+        return branch, {}
 
-    commit_obj = _read_object(repo_dir, commit_oid, Commit)
+    commit_obj = read_object(hst_dir, commit_oid, Commit, store=False)
     if not commit_obj:
         return branch, {}
 
-    return branch, _read_tree_recursive(repo_dir, commit_obj.tree)
-
-
-def _read_index(repo_dir: Path) -> Dict[str, str]:
-    """
-    Read index file into {path: oid}.
-    """
-    index_path = repo_dir / "index"
-    if not index_path.exists():
-        return {}
-
-    with open(index_path, 'r') as file:
-        return json.load(file)
+    return branch, _read_tree_recursive(hst_dir, commit_obj.tree)
 
 
 def _scan_working_tree(repo_root: Path) -> Dict[str, str]:
@@ -84,7 +61,7 @@ def _scan_working_tree(repo_root: Path) -> Dict[str, str]:
     """
     mapping = {}
     for path in repo_root.rglob("*"):
-        if path.is_file() and REPO_DIR not in path.parts:
+        if path.is_file() and HST_DIRNAME not in path.parts:
             rel = str(path.relative_to(repo_root))
             with open(path, "rb") as f:
                 data = f.read()
@@ -135,25 +112,9 @@ def _classify_changes(
     return staged, unstaged, untracked
 
 
-# ------------------------------
-# Low-level object readers
-# ------------------------------
-
-def _read_object(repo_dir: Path, oid: str, cls) -> Optional[Object]:
-    """Read and decompress an object by oid into the given class."""
-    obj_path = repo_dir / "objects" / oid[:2] / oid[2:]
-    if not obj_path.exists():
-        return None
-    
-    data = zlib.decompress(obj_path.read_bytes())
-    # Strip header
-    header, _, content = data.partition(b"\x00")
-    return cls.deserialize(content, store=False)  # Don't re-store when reading
-
-
-def _read_tree_recursive(repo_dir: Path, oid: str, prefix="") -> Dict[str, str]:
+def _read_tree_recursive(hst_dir: Path, oid: str, prefix="") -> Dict[str, str]:
     """Recursively read a tree object into {path: blob_oid}."""
-    tree_obj = _read_object(repo_dir, oid, Tree)
+    tree_obj = read_object(hst_dir, oid, Tree, store=False)
     mapping = {}
     if not tree_obj:
         return mapping
@@ -161,7 +122,7 @@ def _read_tree_recursive(repo_dir: Path, oid: str, prefix="") -> Dict[str, str]:
     for mode, name, child_oid in tree_obj.entries:
         path = f"{prefix}{name}"
         if mode == "040000":  # sub-tree
-            mapping.update(_read_tree_recursive(repo_dir, child_oid, prefix=f"{path}/"))
+            mapping.update(_read_tree_recursive(hst_dir, child_oid, prefix=f"{path}/"))
         else:
             mapping[path] = child_oid
     return mapping

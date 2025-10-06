@@ -5,7 +5,7 @@ import hashlib
 import zlib
 import time
 from typing import List, Tuple
-from hst.repo import REPO_DIR, find_repo_root
+from hst.repo import HST_DIRNAME, find_repo_root
 
 
 class Object(abc.ABC):
@@ -55,7 +55,7 @@ class Object(abc.ABC):
     def _store(self, repo_root: Path):
         """Write this object into .hst/objects/ by its oid if not already stored."""
         oid = self.oid()
-        obj_path = repo_root / REPO_DIR / "objects" / oid[:2] / oid[2:]
+        obj_path = repo_root / HST_DIRNAME / "objects" / oid[:2] / oid[2:]
         if not obj_path.exists():
             obj_path.parent.mkdir(parents=True, exist_ok=True)
             with open(obj_path, "wb") as f:
@@ -65,7 +65,7 @@ class Object(abc.ABC):
 class Blob(Object):
     """Blob (Binary Large Object): stores the raw content of a file.
 
-    A blob represents the file’s data as a sequence of bytes, without
+    A blob represents the file's data as a sequence of bytes, without
     metadata such as the filename or file permissions.
     """
 
@@ -226,7 +226,15 @@ class Tag(Object):
     trees, blobs, or even other tags.
     """
 
-    def __init__(self, object_id: str, type_: str, tag: str, tagger: str, message: str, store: bool = True):
+    def __init__(
+        self,
+        object_id: str,
+        type_: str,
+        tag: str,
+        tagger: str,
+        message: str,
+        store: bool = True,
+    ):
         self.object_id = object_id
         self.object_type = type_
         self.tag = tag
