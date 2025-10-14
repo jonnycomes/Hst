@@ -16,7 +16,9 @@ def run(paths: List[str]):
 
     repo_root, hst_dir = get_repo_paths()
 
-    files_to_add, files_to_delete = collect_files_and_deletions(paths, repo_root, hst_dir)
+    files_to_add, files_to_delete = collect_files_and_deletions(
+        paths, repo_root, hst_dir
+    )
     staged_entries = read_index(hst_dir)
 
     # Stage file additions/modifications
@@ -32,7 +34,7 @@ def run(paths: List[str]):
             del staged_entries[deleted_path]
 
     write_index(hst_dir, staged_entries)
-    
+
     total_changes = len(files_to_add) + len(files_to_delete)
     if files_to_add:
         print(f"Staged {len(files_to_add)} file(s).")
@@ -42,27 +44,29 @@ def run(paths: List[str]):
         print("No changes to stage.")
 
 
-def collect_files_and_deletions(paths: List[str], repo_root: Path, hst_dir: Path) -> Tuple[List[Path], List[str]]:
+def collect_files_and_deletions(
+    paths: List[str], repo_root: Path, hst_dir: Path
+) -> Tuple[List[Path], List[str]]:
     """
     Expand directories and normalize file paths.
     Returns (files_to_add, files_to_delete).
-    
+
     - files_to_add: existing files that should be staged
     - files_to_delete: paths that don't exist but are in the index (deletions to stage)
     """
     files_to_add = []
     files_to_delete = []
-    
+
     # Read current index to check for deleted files
     staged_entries = read_index(hst_dir)
-    
+
     for p in paths:
         abs_path = (Path.cwd() / p).resolve()
-        
+
         # Skip .hst directory
         if HST_DIRNAME in abs_path.parts:
             continue
-            
+
         if abs_path.exists():
             # Handle existing files/directories
             if abs_path.is_file():
@@ -81,14 +85,16 @@ def collect_files_and_deletions(paths: List[str], repo_root: Path, hst_dir: Path
             try:
                 rel_path = abs_path.relative_to(repo_root)
                 rel_path_str = str(rel_path)
-                
+
                 if rel_path_str in staged_entries:
                     # File was deleted from working directory but exists in index
                     files_to_delete.append(rel_path_str)
                 else:
-                    print(f"Warning: '{p}' does not exist and is not in the index, skipping")
+                    print(
+                        f"Warning: '{p}' does not exist and is not in the index, skipping"
+                    )
             except ValueError:
                 # Path is outside repo
                 print(f"Warning: '{p}' is not within the repository, skipping")
-    
+
     return files_to_add, files_to_delete

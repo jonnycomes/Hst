@@ -4,7 +4,8 @@ from hst.repo import get_repo_paths, HST_DIRNAME
 from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.index import read_index
 from hst.repo.objects import read_object
-from hst.hst_objects import Blob, Tree, Commit
+from hst.repo.worktree import read_tree_recursive
+from hst.hst_objects import Blob, Commit
 
 
 def run(argv: List[str]):
@@ -12,7 +13,7 @@ def run(argv: List[str]):
     Run the status command.
     """
     repo_root, hst_dir = get_repo_paths()
-    
+
     # Parse path arguments
     filter_paths = _parse_path_arguments(argv, repo_root) if argv else None
 
@@ -60,10 +61,12 @@ def _get_branch_and_head_tree(hst_dir: Path) -> Dict[str, str]:
     if not commit_obj:
         return branch, {}
 
-    return branch, _read_tree_recursive(hst_dir, commit_obj.tree)
+    return branch, read_tree_recursive(hst_dir, commit_obj.tree)
 
 
-def _scan_working_tree(repo_root: Path, filter_paths: List[str] = None) -> Dict[str, str]:
+def _scan_working_tree(
+    repo_root: Path, filter_paths: List[str] = None
+) -> Dict[str, str]:
     """
     Walk repo_root (excluding .hst) and hash each file into {path: oid}.
     If filter_paths is provided, only scan files matching those paths.
@@ -72,11 +75,11 @@ def _scan_working_tree(repo_root: Path, filter_paths: List[str] = None) -> Dict[
     for path in repo_root.rglob("*"):
         if path.is_file() and HST_DIRNAME not in path.parts:
             rel = str(path.relative_to(repo_root))
-            
+
             # Apply path filter if specified
             if filter_paths and not _path_matches_filter(rel, filter_paths):
                 continue
-                
+
             with open(path, "rb") as f:
                 data = f.read()
             blob = Blob(data, store=False)  # Don't store, just compute hash
@@ -126,22 +129,6 @@ def _classify_changes(
     return staged, unstaged, untracked
 
 
-def _read_tree_recursive(hst_dir: Path, oid: str, prefix="") -> Dict[str, str]:
-    """Recursively read a tree object into {path: blob_oid}."""
-    tree_obj = read_object(hst_dir, oid, Tree, store=False)
-    mapping = {}
-    if not tree_obj:
-        return mapping
-
-    for mode, name, child_oid in tree_obj.entries:
-        path = f"{prefix}{name}"
-        if mode == "040000":  # sub-tree
-            mapping.update(_read_tree_recursive(hst_dir, child_oid, prefix=f"{path}/"))
-        else:
-            mapping[path] = child_oid
-    return mapping
-
-
 def _parse_path_arguments(argv: List[str], repo_root: Path) -> List[str]:
     """
     Parse and validate path arguments.
@@ -150,18 +137,18 @@ def _parse_path_arguments(argv: List[str], repo_root: Path) -> List[str]:
     filter_paths = []
     for arg in argv:
         path = Path(arg)
-        
+
         # Convert to absolute path
         if not path.is_absolute():
             path = Path.cwd() / path
-        
+
         # Normalize the path
         try:
             path = path.resolve()
         except (OSError, RuntimeError):
             print(f"Warning: Cannot resolve path '{arg}', skipping")
             continue
-            
+
         # Check if path is within repo
         try:
             rel_path = path.relative_to(repo_root)
@@ -169,15 +156,17 @@ def _parse_path_arguments(argv: List[str], repo_root: Path) -> List[str]:
         except ValueError:
             print(f"Warning: Path '{arg}' is not within the repository, skipping")
             continue
-    
+
     return filter_paths
 
 
-def _filter_tree_by_paths(tree: Dict[str, str], filter_paths: List[str]) -> Dict[str, str]:
+def _filter_tree_by_paths(
+    tree: Dict[str, str], filter_paths: List[str]
+) -> Dict[str, str]:
     """Filter tree entries to only include paths matching the filter."""
     if not filter_paths:
         return tree
-        
+
     filtered = {}
     for path, oid in tree.items():
         if _path_matches_filter(path, filter_paths):
@@ -185,11 +174,13 @@ def _filter_tree_by_paths(tree: Dict[str, str], filter_paths: List[str]) -> Dict
     return filtered
 
 
-def _filter_index_by_paths(index: Dict[str, str], filter_paths: List[str]) -> Dict[str, str]:
+def _filter_index_by_paths(
+    index: Dict[str, str], filter_paths: List[str]
+) -> Dict[str, str]:
     """Filter index entries to only include paths matching the filter."""
     if not filter_paths:
         return index
-        
+
     filtered = {}
     for path, oid in index.items():
         if _path_matches_filter(path, filter_paths):
@@ -203,17 +194,17 @@ def _path_matches_filter(file_path: str, filter_paths: List[str]) -> bool:
     Returns True if the file_path matches any of the filter_paths.
     """
     file_path_parts = Path(file_path).parts
-    
+
     for filter_path in filter_paths:
         filter_path_parts = Path(filter_path).parts
-        
+
         # Exact match
         if file_path == filter_path:
             return True
-            
+
         # Check if file is under a directory filter
         if len(file_path_parts) >= len(filter_path_parts):
-            if file_path_parts[:len(filter_path_parts)] == filter_path_parts:
+            if file_path_parts[: len(filter_path_parts)] == filter_path_parts:
                 return True
-    
+
     return False
