@@ -1,32 +1,45 @@
 import sys
-from hst.commands import init, add, commit, branch, switch, status, restore, log
+from hst.commands import init, add, commit, branch, switch, status, restore, log, diff
 
 
 def main():
-    cmnds = ["init", "add", "commit", "branch", "switch", "status", "restore", "log"]
+    cmnds = [
+        "init",
+        "add",
+        "commit",
+        "branch",
+        "switch",
+        "status",
+        "restore",
+        "log",
+        "diff",
+    ]
 
     if len(sys.argv) < 2 or sys.argv[1] not in cmnds:
         print(f"Usage: hst [{'|'.join(cmnds)}]")
         sys.exit(1)
 
     command = sys.argv[1]
+    args = sys.argv[2:]
 
     if command == "init":
         init.run()
     elif command == "add":
-        add.run(sys.argv[2:])
+        add.run(args)
     elif command == "commit":
-        commit.run(sys.argv[2:])
+        commit.run(args)
     elif command == "branch":
-        branch.run(sys.argv[2:])
+        branch.run(args)
     elif command == "switch":
-        switch.run(sys.argv[2:])
+        switch.run(args)
     elif command == "status":
-        status.run(sys.argv[2:])
+        status.run(args)
     elif command == "restore":
-        restore.run(sys.argv[2:])
+        restore.run(args)
     elif command == "log":
-        log.run(sys.argv[2:])
+        log.run(args)
+    elif command == "diff":
+        diff.run(args)
     else:
         print(f"Unknown command: {command}")
 

@@ -68,7 +68,9 @@ hst commit -m "commit message"
 - ✅ `hst restore --staged <path>`
 
 ### `diff`
-- ◻️ `hst diff`
+- ✅ `hst diff`
+- ✅ `hst diff --staged`
+- ✅ `hst diff --cached`
 
 ### `merge`
 - ◻️ `hst merge`
