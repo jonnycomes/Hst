@@ -44,7 +44,8 @@ hst commit -m "commit message"
 - ✅ `hst add <file> [<file>...]`
 - ✅ `hst add <dir> [...]`
 - ✅ `hst add .`
-- ◻️ `hst add --all`
+- ✅ `hst add --all`
+- ✅ `hst add -A`
 - **Note:** Currently, the index is just a JSON. Making it a binary file will come later. 
 
 ### `commit`
@@ -66,6 +67,11 @@ hst commit -m "commit message"
 ### `switch`
 - ✅ `hst switch <branch name>`
 - ✅ `hst switch -c <branch name>`
+
+### `restore`
+- ◻️ `hst restore <file>`
+- ◻️ `hst restore --staged <file>`
+
 
 ### `merge`
 - ◻️ `hst merge`

@@ -1,11 +1,15 @@
 from pathlib import Path
 from typing import Dict, List, Tuple
-from hst.repo import get_repo_paths, HST_DIRNAME
+from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.index import read_index
 from hst.repo.objects import read_object
-from hst.repo.worktree import read_tree_recursive
-from hst.hst_objects import Blob, Commit
+from hst.repo.worktree import (
+    read_tree_recursive,
+    scan_working_tree,
+    path_matches_filter,
+)
+from hst.hst_objects import Commit
 
 
 def run(argv: List[str]):
@@ -19,7 +23,7 @@ def run(argv: List[str]):
 
     branch, head_tree = _get_branch_and_head_tree(hst_dir)
     index = read_index(hst_dir)
-    worktree = _scan_working_tree(repo_root, filter_paths)
+    worktree = scan_working_tree(repo_root, filter_paths)
 
     # Filter other collections by paths if specified
     if filter_paths:
@@ -62,29 +66,6 @@ def _get_branch_and_head_tree(hst_dir: Path) -> Dict[str, str]:
         return branch, {}
 
     return branch, read_tree_recursive(hst_dir, commit_obj.tree)
-
-
-def _scan_working_tree(
-    repo_root: Path, filter_paths: List[str] = None
-) -> Dict[str, str]:
-    """
-    Walk repo_root (excluding .hst) and hash each file into {path: oid}.
-    If filter_paths is provided, only scan files matching those paths.
-    """
-    mapping = {}
-    for path in repo_root.rglob("*"):
-        if path.is_file() and HST_DIRNAME not in path.parts:
-            rel = str(path.relative_to(repo_root))
-
-            # Apply path filter if specified
-            if filter_paths and not _path_matches_filter(rel, filter_paths):
-                continue
-
-            with open(path, "rb") as f:
-                data = f.read()
-            blob = Blob(data, store=False)  # Don't store, just compute hash
-            mapping[rel] = blob.oid()
-    return mapping
 
 
 def _classify_changes(
@@ -169,7 +150,7 @@ def _filter_tree_by_paths(
 
     filtered = {}
     for path, oid in tree.items():
-        if _path_matches_filter(path, filter_paths):
+        if path_matches_filter(path, filter_paths):
             filtered[path] = oid
     return filtered
 
@@ -183,28 +164,6 @@ def _filter_index_by_paths(
 
     filtered = {}
     for path, oid in index.items():
-        if _path_matches_filter(path, filter_paths):
+        if path_matches_filter(path, filter_paths):
             filtered[path] = oid
     return filtered
-
-
-def _path_matches_filter(file_path: str, filter_paths: List[str]) -> bool:
-    """
-    Check if a file path should be included based on filter paths.
-    Returns True if the file_path matches any of the filter_paths.
-    """
-    file_path_parts = Path(file_path).parts
-
-    for filter_path in filter_paths:
-        filter_path_parts = Path(filter_path).parts
-
-        # Exact match
-        if file_path == filter_path:
-            return True
-
-        # Check if file is under a directory filter
-        if len(file_path_parts) >= len(filter_path_parts):
-            if file_path_parts[: len(filter_path_parts)] == filter_path_parts:
-                return True
-
-    return False

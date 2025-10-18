@@ -3,6 +3,7 @@ from typing import List, Tuple
 from hst.hst_objects import Blob
 from hst.repo import get_repo_paths, HST_DIRNAME
 from hst.repo.index import read_index, write_index
+from hst.repo.worktree import scan_working_tree
 import sys
 
 
@@ -10,8 +11,17 @@ def run(paths: List[str]):
     """
     Stage the given paths for commit.
     """
+    # Check for --all flag
+    if "--all" in paths or "-A" in paths:
+        # Remove the flag from paths
+        paths = [p for p in paths if p not in ["--all", "-A"]]
+        if paths:
+            print("Warning: --all flag ignores other paths")
+        _add_all()
+        return
+
     if not paths:
-        print("Usage: hst add <path> [<path> ...]")
+        print("Usage: hst add <path> [<path> ...] or hst add --all")
         sys.exit(1)
 
     repo_root, hst_dir = get_repo_paths()
@@ -98,3 +108,60 @@ def collect_files_and_deletions(
                 print(f"Warning: '{p}' is not within the repository, skipping")
 
     return files_to_add, files_to_delete
+
+
+def _add_all():
+    """
+    Stage all changes in the repository (like git add --all).
+    This includes new files, modifications, and deletions.
+    """
+    repo_root, hst_dir = get_repo_paths()
+
+    # Get current index
+    staged_entries = read_index(hst_dir)
+
+    # Scan working directory for all files using shared function
+    worktree_files = scan_working_tree(repo_root)
+
+    # Find all paths that exist in either working directory or index
+    all_paths = set(worktree_files.keys()) | set(staged_entries.keys())
+
+    files_added = 0
+    files_deleted = 0
+    files_modified = 0
+
+    for path in all_paths:
+        worktree_oid = worktree_files.get(path)
+        index_oid = staged_entries.get(path)
+
+        if worktree_oid and not index_oid:
+            # New file
+            staged_entries[path] = worktree_oid
+            files_added += 1
+        elif worktree_oid and index_oid and worktree_oid != index_oid:
+            # Modified file
+            staged_entries[path] = worktree_oid
+            files_modified += 1
+        elif not worktree_oid and index_oid:
+            # Deleted file
+            del staged_entries[path]
+            files_deleted += 1
+        # If worktree_oid == index_oid, no change needed
+
+    # Write updated index
+    write_index(hst_dir, staged_entries)
+
+    # Report results
+    total_changes = files_added + files_modified + files_deleted
+    if total_changes == 0:
+        print("No changes to stage.")
+    else:
+        changes = []
+        if files_added > 0:
+            changes.append(f"{files_added} new file(s)")
+        if files_modified > 0:
+            changes.append(f"{files_modified} modified file(s)")
+        if files_deleted > 0:
+            changes.append(f"{files_deleted} deletion(s)")
+
+        print(f"Staged {', '.join(changes)}.")

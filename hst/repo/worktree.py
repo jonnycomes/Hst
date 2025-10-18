@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 from hst.repo import HST_DIRNAME
 from hst.repo.objects import read_object
 from hst.repo.index import write_index
@@ -92,3 +92,49 @@ def restore_files_from_tree(
             full_path.write_bytes(blob_obj.data)
         except OSError as e:
             print(f"Warning: Could not write {file_path}: {e}")
+
+
+def scan_working_tree(
+    repo_root: Path, filter_paths: List[str] = None, store_blobs: bool = False
+) -> Dict[str, str]:
+    """
+    Walk repo_root (excluding .hst) and hash each file into {path: oid}.
+    If filter_paths is provided, only scan files matching those paths.
+    If store_blobs is True, blob objects will be stored to disk.
+    """
+    mapping = {}
+    for path in repo_root.rglob("*"):
+        if path.is_file() and HST_DIRNAME not in path.parts:
+            rel_path = str(path.relative_to(repo_root))
+
+            # Apply path filter if specified
+            if filter_paths and not path_matches_filter(rel_path, filter_paths):
+                continue
+
+            with open(path, "rb") as f:
+                data = f.read()
+            blob = Blob(data, store=store_blobs)  # Store based on parameter
+            mapping[rel_path] = blob.oid()
+    return mapping
+
+
+def path_matches_filter(file_path: str, filter_paths: List[str]) -> bool:
+    """
+    Check if a file path should be included based on filter paths.
+    Returns True if the file_path matches any of the filter_paths.
+    """
+    file_path_parts = Path(file_path).parts
+
+    for filter_path in filter_paths:
+        filter_path_parts = Path(filter_path).parts
+
+        # Exact match
+        if file_path == filter_path:
+            return True
+
+        # Check if file is under a directory filter
+        if len(file_path_parts) >= len(filter_path_parts):
+            if file_path_parts[: len(filter_path_parts)] == filter_path_parts:
+                return True
+
+    return False
