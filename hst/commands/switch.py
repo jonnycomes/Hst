@@ -113,7 +113,9 @@ def _check_staged_changes_safety(hst_dir: Path):
     This prevents switching branches when there are uncommitted changes.
     """
     if _check_for_staged_changes(hst_dir):
-        print("error: Your local changes to the staged files would be overwritten by checkout.")
+        print(
+            "error: Your local changes to the staged files would be overwritten by checkout."
+        )
         print("Please commit your changes or stash them before you switch branches.")
         print("Aborting")
         sys.exit(1)

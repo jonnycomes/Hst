@@ -4,23 +4,30 @@ import subprocess
 import shlex
 import tempfile
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, update_head
 from hst.repo.index import read_index
-from hst.hst_objects import Commit, Tree
+from hst.repo.objects import read_object, build_tree
+from hst.hst_objects import Commit
 
 
 def run(argv: List[str]):
     """
     Create a new commit in the repository.
     """
-    message = _get_commit_message(argv)
     repo_root, hst_dir = get_repo_paths()
     index = read_index(hst_dir)
 
+    # Check if there's anything to commit
+    if not _has_changes_to_commit(hst_dir, index):
+        print("nothing to commit, working tree clean")
+        sys.exit(1)
+
+    message = _get_commit_message(argv)
+
     # Build a tree object from index
-    tree = _build_tree(repo_root, index)
+    tree = build_tree(repo_root, index)
     tree_oid = tree.oid()
 
     # Get parent commit if HEAD exists
@@ -70,55 +77,33 @@ def _get_commit_message(argv: List[str]) -> str:
     return message
 
 
-def _build_tree(repo_root: Path, index: dict, base_path: Optional[Path] = None) -> Tree:
+def _has_changes_to_commit(hst_dir: Path, index: dict) -> bool:
     """
-    Recursively build a tree object from the index.
+    Check if there are staged changes to commit.
 
-    index: mapping from relative paths (str) to blob OIDs
-    base_path: current directory relative to repo_root
+    Returns True if there are changes, False if nothing to commit.
     """
-    if base_path is None:
-        base_path = Path("")
+    # If index is empty, there's nothing to commit
+    if not index:
+        return False
 
-    entries = []
+    # Get current commit's tree if it exists
+    current_commit_oid = get_current_commit_oid(hst_dir)
+    if current_commit_oid is None:
+        # No previous commits, so any staged files are changes
+        return True  # Read current commit and get its tree
 
-    # Find all direct children (files and subdirectories) under base_path
-    direct_children = {}  # name -> oid (for files) or None (for directories)
+    commit_obj = read_object(hst_dir, current_commit_oid, Commit)
+    if commit_obj is None:
+        # Commit object not found, treat as changes
+        return True
 
-    for path_str, blob_oid in index.items():
-        path = Path(path_str)
+    current_tree_oid = commit_obj.tree
 
-        # Skip if not under current base_path
-        if base_path != Path(""):
-            try:
-                rel_path = path.relative_to(base_path)
-            except ValueError:
-                continue
-        else:
-            rel_path = path
+    # Build tree from index and compare with current tree
+    repo_root, _ = get_repo_paths()
+    staged_tree = build_tree(repo_root, index)
+    staged_tree_oid = staged_tree.oid()
 
-        # Get the immediate child name
-        if len(rel_path.parts) == 1:
-            # This is a direct file child
-            direct_children[rel_path.parts[0]] = blob_oid
-        elif len(rel_path.parts) > 1:
-            # This indicates a subdirectory
-            subdir_name = rel_path.parts[0]
-            if subdir_name not in direct_children:
-                direct_children[subdir_name] = None  # Mark as directory
-
-    # Process direct children
-    for name, oid in direct_children.items():
-        if oid is not None:
-            # It's a file
-            entries.append(("100644", name, oid))
-        else:
-            # It's a directory - recursively build its tree
-            subdir_path = base_path / name if base_path != Path("") else Path(name)
-            sub_tree = _build_tree(repo_root, index, subdir_path)
-            sub_oid = sub_tree.oid()  # Tree stores itself on creation
-            entries.append(("040000", name, sub_oid))
-
-    # Sort entries by name (like Git does)
-    entries.sort(key=lambda x: x[1])
-    return Tree(entries)
+    # If tree OIDs are different, there are changes
+    return current_tree_oid != staged_tree_oid

@@ -52,7 +52,6 @@ hst commit -m "commit message"
 - ✅ `hst commit`
 - ✅ `hst commit -m "message"`
 - ◻️ `hst commit --amend`
-- **Note:** Currently, you can commit even if nothing new is staged. This should be fixed later.
 
 ### `status`
 - ✅ `hst status`
