@@ -67,6 +67,9 @@ hst commit -m "commit message"
 - ✅ `hst restore <path>`
 - ✅ `hst restore --staged <path>`
 
+### `diff`
+- ◻️ `hst diff`
+
 ### `merge`
 - ◻️ `hst merge`
 
@@ -82,13 +85,19 @@ hst commit -m "commit message"
 - ◻️ `hst remote -v`
 - ◻️ `hst remote add origin <repo>`
 
+### `clone`
+- ◻️ `hst clone`
+
 ### `push`
-- ◻️ (comming soon)
+- ◻️ `hst push`
 
 ### `pull`
-- ◻️ (comming soon)
+- ◻️ `hst pull`
 
 ### `fetch`
-- ◻️ (comming soon)
+- ◻️ `hst fetch`
+
+### `revert`
+- ◻️ `hst revert`
 
 
