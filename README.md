@@ -73,7 +73,9 @@ hst commit -m "commit message"
 - ✅ `hst diff --cached`
 
 ### `merge`
-- ◻️ `hst merge`
+- ✅ `hst merge`
+- ✅ `hst merge --abort`
+- ✅ `hst merge --continue`
 
 ### `log`
 - ✅ `hst log`

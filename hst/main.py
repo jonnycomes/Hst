@@ -1,5 +1,5 @@
 import sys
-from hst.commands import init, add, commit, branch, switch, status, restore, log, diff
+from hst.commands import init, add, commit, branch, switch, status, restore, log, diff, merge
 
 
 def main():
@@ -13,6 +13,7 @@ def main():
         "restore",
         "log",
         "diff",
+        "merge",
     ]
 
     if len(sys.argv) < 2 or sys.argv[1] not in cmnds:
@@ -40,6 +41,8 @@ def main():
         log.run(args)
     elif command == "diff":
         diff.run(args)
+    elif command == "merge":
+        merge.run(args)
     else:
         print(f"Unknown command: {command}")
 
