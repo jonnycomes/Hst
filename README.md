@@ -29,7 +29,7 @@ hst init
 Then you can `add` and `commit` files to your Hst repo by mimicking Git commands:
 
 ```bash
-hst add <file>
+hst add <path>
 hst commit -m "commit message"
 ```
 
@@ -39,9 +39,7 @@ hst commit -m "commit message"
 - ✅ `hst init` (missing files in hooks)
 
 ### `add`
-- ✅ `hst add <file> [<file>...]`
-- ✅ `hst add <dir> [...]`
-- ✅ `hst add .`
+- ✅ `hst add <path> [<path>...]`
 - ✅ `hst add --all`
 - ✅ `hst add -A`
 - **Note:** Currently, the index is just a JSON. Making it a binary file will come later. 
@@ -66,15 +64,15 @@ hst commit -m "commit message"
 - ✅ `hst switch -c <branch name>`
 
 ### `restore`
-- ✅ `hst restore <file>`
-- ✅ `hst restore --staged <file>`
+- ✅ `hst restore <path>`
+- ✅ `hst restore --staged <path>`
 
 ### `merge`
 - ◻️ `hst merge`
 
 ### `log`
-- ◻️ `hst log`
-- ◻️ `hst log --oneline`
+- ✅ `hst log`
+- ✅ `hst log --oneline`
 - ◻️ `hst log --graph`
 
 ### `rebase`
