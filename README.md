@@ -61,7 +61,7 @@ hst commit -m "commit message"
 - ✅ `hst branch`
 - ✅ `hst branch <branch name>`
 - ✅ `hst branch -D <branch name>`
-- ◻️ `hst branch -d <branch name>`
+- ✅ `hst branch -d <branch name>`
 
 ### `switch`
 - ✅ `hst switch <branch name>`

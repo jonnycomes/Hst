@@ -3,10 +3,8 @@ from pathlib import Path
 from typing import List
 from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
-from hst.repo.index import read_index
-from hst.repo.objects import read_object
-from hst.repo.worktree import checkout_commit, read_tree_recursive
-from hst.hst_objects import Commit
+from hst.repo.index import check_for_staged_changes
+from hst.repo.worktree import checkout_commit
 
 
 def run(argv: List[str]):
@@ -82,37 +80,12 @@ def _compare_current_to_switch(hst_dir: Path, name: str):
         sys.exit(1)
 
 
-def _check_for_staged_changes(hst_dir: Path) -> bool:
-    """
-    Check if there are staged changes that would be lost by switching branches.
-    Returns True if there are staged changes, False otherwise.
-    """
-    # Read current index
-    index = read_index(hst_dir)
-
-    # Get current commit
-    current_commit_oid = get_current_commit_oid(hst_dir)
-    if not current_commit_oid:
-        # No commits yet, any files in index are staged changes
-        return len(index) > 0
-
-    # Read HEAD commit tree
-    commit_obj = read_object(hst_dir, current_commit_oid, Commit, store=False)
-    if not commit_obj:
-        return len(index) > 0
-
-    head_tree = read_tree_recursive(hst_dir, commit_obj.tree)
-
-    # Compare index with HEAD tree
-    return index != head_tree
-
-
 def _check_staged_changes_safety(hst_dir: Path):
     """
     Check for staged changes and exit if any are found.
     This prevents switching branches when there are uncommitted changes.
     """
-    if _check_for_staged_changes(hst_dir):
+    if check_for_staged_changes(hst_dir):
         print(
             "error: Your local changes to the staged files would be overwritten by checkout."
         )
