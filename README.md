@@ -51,7 +51,7 @@ hst commit -m "commit message"
 ### `commit`
 - ✅ `hst commit`
 - ✅ `hst commit -m "message"`
-- ◻️ `hst commit --amend`
+- ✅ `hst commit --amend`
 
 ### `status`
 - ✅ `hst status`
