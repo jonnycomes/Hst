@@ -33,8 +33,6 @@ hst add <file>
 hst commit -m "commit message"
 ```
 
-
-
 ## Commands That Either Work (✅) or Are Coming Soon (◻️)
 
 ### `init`
@@ -68,9 +66,8 @@ hst commit -m "commit message"
 - ✅ `hst switch -c <branch name>`
 
 ### `restore`
-- ◻️ `hst restore <file>`
-- ◻️ `hst restore --staged <file>`
-
+- ✅ `hst restore <file>`
+- ✅ `hst restore --staged <file>`
 
 ### `merge`
 - ◻️ `hst merge`
