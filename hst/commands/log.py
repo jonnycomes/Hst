@@ -7,7 +7,7 @@ from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.objects import read_object
 from hst.repo.refs import resolve_commit_ref
 from hst.components import Commit
-from hst.colors import CYAN, GREEN, YELLOW, RESET
+from hst.colors import CYAN, GREEN, YELLOW, RED, RESET
 
 
 def run(argv: List[str]):
@@ -98,23 +98,39 @@ def _get_commit_history(hst_dir: Path, start_commit_oid: str) -> List[tuple]:
 def _get_commit_to_branches_mapping(hst_dir: Path) -> Dict[str, Set[str]]:
     """Create a mapping from commit OID to set of branch names that point to it."""
     commit_to_branches = {}
+    
+    # Scan local branches
     refs_heads = hst_dir / "refs" / "heads"
-
-    if not refs_heads.exists():
-        return commit_to_branches
-
-    # Scan all branch files
-    for branch_file in refs_heads.iterdir():
-        if branch_file.is_file():
-            branch_name = branch_file.name
-            try:
-                commit_oid = branch_file.read_text().strip()
-                if commit_oid not in commit_to_branches:
-                    commit_to_branches[commit_oid] = set()
-                commit_to_branches[commit_oid].add(branch_name)
-            except Exception:
-                # Skip invalid branch files
-                continue
+    if refs_heads.exists():
+        for branch_file in refs_heads.iterdir():
+            if branch_file.is_file():
+                branch_name = branch_file.name
+                try:
+                    commit_oid = branch_file.read_text().strip()
+                    if commit_oid not in commit_to_branches:
+                        commit_to_branches[commit_oid] = set()
+                    commit_to_branches[commit_oid].add(branch_name)
+                except Exception:
+                    # Skip invalid branch files
+                    continue
+    
+    # Scan remote tracking branches
+    refs_remotes = hst_dir / "refs" / "remotes"
+    if refs_remotes.exists():
+        for remote_dir in refs_remotes.iterdir():
+            if remote_dir.is_dir():
+                remote_name = remote_dir.name
+                for branch_file in remote_dir.iterdir():
+                    if branch_file.is_file():
+                        branch_name = f"{remote_name}/{branch_file.name}"
+                        try:
+                            commit_oid = branch_file.read_text().strip()
+                            if commit_oid not in commit_to_branches:
+                                commit_to_branches[commit_oid] = set()
+                            commit_to_branches[commit_oid].add(branch_name)
+                        except Exception:
+                            # Skip invalid branch files
+                            continue
 
     return commit_to_branches
 
@@ -138,9 +154,23 @@ def _format_branch_info(
         head_info = f"{CYAN}HEAD -> {GREEN}{current_branch}{RESET}"
         branch_parts.append(head_info)
 
-    # Add other branches
-    for branch in sorted(branches):
+    # Separate local and remote branches
+    local_branches = []
+    remote_branches = []
+    
+    for branch in branches:
+        if "/" in branch:  # Remote branch (format: remote/branch)
+            remote_branches.append(branch)
+        else:  # Local branch
+            local_branches.append(branch)
+
+    # Add local branches (green)
+    for branch in sorted(local_branches):
         branch_parts.append(f"{GREEN}{branch}{RESET}")
+    
+    # Add remote branches (red)
+    for branch in sorted(remote_branches):
+        branch_parts.append(f"{RED}{branch}{RESET}")
 
     return f"{YELLOW}({RESET}{f'{YELLOW}, {RESET}'.join(branch_parts)}{YELLOW}){RESET}"
 
