@@ -11,6 +11,8 @@ from hst.commands import (
     diff,
     merge,
     clone,
+    remote,
+    push,
 )
 
 
@@ -27,6 +29,8 @@ def main():
         "diff",
         "merge",
         "clone",
+        "remote",
+        "push",
     ]
 
     if len(sys.argv) < 2 or sys.argv[1] not in cmnds:
@@ -58,6 +62,10 @@ def main():
         merge.run(args)
     elif command == "clone":
         clone.run(args)
+    elif command == "remote":
+        remote.run(args)
+    elif command == "push":
+        push.run(args)
     else:
         print(f"Unknown command: {command}")
 

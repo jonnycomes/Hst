@@ -87,14 +87,20 @@ hst commit -m "commit message"
 - ◻️ `hst rebase -i <commit-ish>`
 
 ### `remote`
-- ◻️ `hst remote -v`
-- ◻️ `hst remote add origin <repo>`
+- ✅ `hst remote`
+- ✅ `hst remote -v`
+- ✅ `hst remote add <name> <repo>`
+- ✅ `hst remote remove <name>`
+- ✅ `hst remote get-url <name>`
 
 ### `clone`
 - ✅ `hst clone <local repo>`
 
 ### `push`
-- ◻️ `hst push`
+- ✅ `hst push`
+- ✅ `hst push <remote>`
+- ✅ `hst push <remote> <branch>`
+- ✅ `hst push <remote> <local_branch>:<remote_branch>`
 
 ### `pull`
 - ◻️ `hst pull`
