@@ -56,6 +56,7 @@ hst commit -m "commit message"
 ### `branch`
 - ✅ `hst branch`
 - ✅ `hst branch <branch name>`
+- ✅ `hst branch <branch name> <commit>`
 - ✅ `hst branch -D <branch name>`
 - ✅ `hst branch -d <branch name>`
 
