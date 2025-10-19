@@ -4,6 +4,7 @@ from typing import List
 from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.index import check_for_staged_changes
+from hst.colors import GREEN, RESET
 
 
 def run(argv: List[str]):
@@ -38,7 +39,8 @@ def _list_branches(hst_dir: Path):
 
     for b in branches:
         prefix = "*" if b == current else " "
-        print(f"{prefix} {b}")
+        clr = GREEN if b == current else ""
+        print(f"{prefix} {clr}{b}{RESET}")
 
 
 def _create_branch(hst_dir: Path, name: str):

@@ -10,7 +10,7 @@ from hst.repo.worktree import (
     path_matches_filter,
 )
 from hst.hst_objects import Commit
-
+from hst.colors import RED, GREEN, RESET
 
 def run(argv: List[str]):
     """
@@ -37,17 +37,17 @@ def run(argv: List[str]):
     if staged:
         print("\nChanges to be committed:")
         for path, change in staged:
-            print(f"    {change}:   {path}")
+            print(f"{GREEN}    {change}:   {path}{RESET}")
 
     if unstaged:
         print("\nChanges not staged for commit:")
         for path, change in unstaged:
-            print(f"    {change}:   {path}")
+            print(f"{RED}    {change}:   {path}{RESET}")
 
     if untracked:
         print("\nUntracked files:")
         for path in untracked:
-            print(f"    {path}")
+            print(f"{RED}    {path}{RESET}")
 
 
 def _get_branch_and_head_tree(hst_dir: Path) -> Dict[str, str]:

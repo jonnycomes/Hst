@@ -1,5 +1,16 @@
 import sys
-from hst.commands import init, add, commit, branch, switch, status, restore, log, diff, merge
+from hst.commands import (
+    init,
+    add,
+    commit,
+    branch,
+    switch,
+    status,
+    restore,
+    log,
+    diff,
+    merge,
+)
 
 
 def main():

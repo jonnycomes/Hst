@@ -1,4 +1,5 @@
 import sys
+import difflib
 from pathlib import Path
 from typing import List, Dict, Optional
 from hst.repo import get_repo_paths
@@ -220,8 +221,6 @@ def _get_file_content(
 def _show_unified_diff(lines1: List[str], lines2: List[str]):
     """Show unified diff between two lists of lines."""
     # Simple diff implementation - could be enhanced with proper difflib
-    import difflib
-
     diff = difflib.unified_diff(
         lines1,
         lines2,

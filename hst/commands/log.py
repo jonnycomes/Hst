@@ -1,4 +1,3 @@
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Set
@@ -6,6 +5,7 @@ from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.objects import read_object
 from hst.hst_objects import Commit
+from hst.colors import CYAN, GREEN, YELLOW, RESET
 
 
 def run(argv: List[str]):
@@ -95,7 +95,9 @@ def _get_commit_to_branches_mapping(hst_dir: Path) -> Dict[str, Set[str]]:
     return commit_to_branches
 
 
-def _format_branch_info(commit_oid: str, commit_to_branches: Dict[str, Set[str]], current_branch: str) -> str:
+def _format_branch_info(
+    commit_oid: str, commit_to_branches: Dict[str, Set[str]], current_branch: str
+) -> str:
     """Format branch information for a commit."""
     if commit_oid not in commit_to_branches:
         return ""
@@ -104,41 +106,33 @@ def _format_branch_info(commit_oid: str, commit_to_branches: Dict[str, Set[str]]
     if not branches:
         return ""
 
-    # Check if colors are supported
-    use_colors = sys.stdout.isatty()
-    
-    # Color codes
-    if use_colors:
-        CYAN = "\033[36m"
-        YELLOW = "\033[33m" 
-        GREEN = "\033[32m"
-        RESET = "\033[0m"
-    else:
-        CYAN = YELLOW = GREEN = RESET = ""
-    
     branch_parts = []
-    
+
     # Handle current branch with HEAD -> branch_name format
     if current_branch in branches:
         branches.remove(current_branch)
         head_info = f"{CYAN}HEAD -> {GREEN}{current_branch}{RESET}"
         branch_parts.append(head_info)
-    
+
     # Add other branches
     for branch in sorted(branches):
-        branch_parts.append(f"{YELLOW}{branch}{RESET}")
-    
-    return f" ({', '.join(branch_parts)})"
+        branch_parts.append(f"{GREEN}{branch}{RESET}")
+
+    return f"{YELLOW}({RESET}{f'{YELLOW}, {RESET}'.join(branch_parts)}{YELLOW}){RESET}"
 
 
-def _display_full(commits: List[tuple], commit_to_branches: Dict[str, Set[str]], current_branch: str):
+def _display_full(
+    commits: List[tuple], commit_to_branches: Dict[str, Set[str]], current_branch: str
+):
     """Display commits in full format (like git log)."""
     for i, (commit_oid, commit_obj) in enumerate(commits):
         if i > 0:
             print()  # Blank line between commits
 
-        branch_info = _format_branch_info(commit_oid, commit_to_branches, current_branch)
-        print(f"commit {commit_oid}{branch_info}")
+        branch_info = _format_branch_info(
+            commit_oid, commit_to_branches, current_branch
+        )
+        print(f"{YELLOW}commit {commit_oid} {branch_info}{RESET}")
         print(f"Author: {commit_obj.author}")
         print(f"Date:   {_format_timestamp(commit_obj.author_timestamp)}")
         print()
@@ -148,18 +142,23 @@ def _display_full(commits: List[tuple], commit_to_branches: Dict[str, Set[str]],
             print(f"    {line}")
 
 
-def _display_oneline(commits: List[tuple], commit_to_branches: Dict[str, Set[str]], current_branch: str):
+def _display_oneline(
+    commits: List[tuple], commit_to_branches: Dict[str, Set[str]], current_branch: str
+):
     """Display commits in one-line format (like git log --oneline)."""
     for commit_oid, commit_obj in commits:
         # Get first line of commit message
         first_line = commit_obj.message.split("\n")[0]
 
         # Display branch information
-        branch_info = _format_branch_info(commit_oid, commit_to_branches, current_branch)
+        branch_info = _format_branch_info(
+            commit_oid, commit_to_branches, current_branch
+        )
+        colored_commit = f"{YELLOW}{commit_oid[:7]}{RESET}"
         if branch_info:
-            print(f"{commit_oid[:7]} {first_line} {branch_info}")
+            print(f"{colored_commit} {branch_info} {first_line}")
         else:
-            print(f"{commit_oid[:7]} {first_line}")
+            print(f"{colored_commit} {first_line}")
 
 
 def _format_timestamp(timestamp: int) -> str:
