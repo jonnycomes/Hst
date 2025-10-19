@@ -8,6 +8,7 @@ from hst.repo.index import read_index
 from hst.repo.objects import read_object
 from hst.repo.worktree import read_tree_recursive, scan_working_tree
 from hst.hst_objects import Commit, Blob
+from hst.colors import CYAN, GREEN, RED, BOLD, RESET
 
 
 def run(argv: List[str]):
@@ -46,7 +47,7 @@ def run(argv: List[str]):
 
 def _diff_worktree_vs_index(repo_root: Path, hst_dir: Path):
     """Show differences between working tree and index."""
-    print("diff --hst a/index b/worktree")
+    print(f"{BOLD}diff --hst a/index b/worktree{RESET}")
 
     index = read_index(hst_dir)
     worktree = scan_working_tree(repo_root)
@@ -56,7 +57,7 @@ def _diff_worktree_vs_index(repo_root: Path, hst_dir: Path):
 
 def _diff_index_vs_head(repo_root: Path, hst_dir: Path):
     """Show differences between index and HEAD."""
-    print("diff --hst a/HEAD b/index")
+    print(f"{BOLD}diff --hst a/HEAD b/index{RESET}")
 
     # Get HEAD tree
     current_commit_oid = get_current_commit_oid(hst_dir)
@@ -75,9 +76,15 @@ def _diff_index_vs_head(repo_root: Path, hst_dir: Path):
     _show_diff_between_trees("HEAD", head_tree, "index", index, hst_dir, repo_root)
 
 
-def _diff_worktree_vs_commit(repo_root: Path, hst_dir: Path, commit_oid: str):
+def _diff_worktree_vs_commit(repo_root: Path, hst_dir: Path, commit_ref: str):
     """Show differences between working tree and a specific commit."""
-    print(f"diff --hst a/{commit_oid[:7]} b/worktree")
+    # Resolve commit reference
+    commit_oid = _resolve_commit_ref(hst_dir, commit_ref)
+    if not commit_oid:
+        print(f"fatal: bad revision '{commit_ref}'")
+        sys.exit(1)
+    
+    print(f"{BOLD}diff --hst a/{commit_oid[:7]} b/worktree{RESET}")
 
     # Get commit tree
     commit_obj = read_object(hst_dir, commit_oid, Commit, store=False)
@@ -94,10 +101,21 @@ def _diff_worktree_vs_commit(repo_root: Path, hst_dir: Path, commit_oid: str):
 
 
 def _diff_commit_vs_commit(
-    repo_root: Path, hst_dir: Path, commit1_oid: str, commit2_oid: str
+    repo_root: Path, hst_dir: Path, commit1_ref: str, commit2_ref: str
 ):
     """Show differences between two commits."""
-    print(f"diff --hst a/{commit1_oid[:7]} b/{commit2_oid[:7]}")
+    # Resolve commit references
+    commit1_oid = _resolve_commit_ref(hst_dir, commit1_ref)
+    if not commit1_oid:
+        print(f"fatal: bad revision '{commit1_ref}'")
+        sys.exit(1)
+    
+    commit2_oid = _resolve_commit_ref(hst_dir, commit2_ref)
+    if not commit2_oid:
+        print(f"fatal: bad revision '{commit2_ref}'")
+        sys.exit(1)
+    
+    print(f"{BOLD}diff --hst a/{commit1_oid[:7]} b/{commit2_oid[:7]}{RESET}")
 
     # Get first commit tree
     commit1_obj = read_object(hst_dir, commit1_oid, Commit, store=False)
@@ -158,26 +176,26 @@ def _show_file_diff(
     repo_root: Path = None,
 ):
     """Show diff for a single file."""
-    print(f"diff --hst a/{path} b/{path}")
+    print(f"{BOLD}diff --hst a/{path} b/{path}{RESET}")
 
     if oid1 is None:
-        print("new file mode 100644")
-        print(f"index 0000000..{oid2[:7]}")
-        print("--- /dev/null")
-        print(f"+++ b/{path}")
+        print(f"{BOLD}new file mode 100644{RESET}")
+        print(f"{CYAN}index 0000000..{oid2[:7]}{RESET}")
+        print(f"{BOLD}--- /dev/null{RESET}")
+        print(f"{BOLD}+++ b/{path}{RESET}")
         content2 = _get_file_content(oid2, hst_dir, name2, path, repo_root)
         _show_unified_diff([], content2.splitlines() if content2 else [])
     elif oid2 is None:
-        print("deleted file mode 100644")
-        print(f"index {oid1[:7]}..0000000")
-        print(f"--- a/{path}")
-        print("+++ /dev/null")
+        print(f"{BOLD}deleted file mode 100644{RESET}")
+        print(f"{CYAN}index {oid1[:7]}..0000000{RESET}")
+        print(f"{BOLD}--- a/{path}{RESET}")
+        print(f"{BOLD}+++ /dev/null{RESET}")
         content1 = _get_file_content(oid1, hst_dir, name1, path, repo_root)
         _show_unified_diff(content1.splitlines() if content1 else [], [])
     else:
-        print(f"index {oid1[:7]}..{oid2[:7]} 100644")
-        print(f"--- a/{path}")
-        print(f"+++ b/{path}")
+        print(f"{CYAN}index {oid1[:7]}..{oid2[:7]} 100644{RESET}")
+        print(f"{BOLD}--- a/{path}{RESET}")
+        print(f"{BOLD}+++ b/{path}{RESET}")
         content1 = _get_file_content(oid1, hst_dir, name1, path, repo_root)
         content2 = _get_file_content(oid2, hst_dir, name2, path, repo_root)
         lines1 = content1.splitlines() if content1 else []
@@ -232,4 +250,52 @@ def _show_unified_diff(lines1: List[str], lines2: List[str]):
     diff_lines = list(diff)
     if len(diff_lines) > 2:
         for line in diff_lines[2:]:
-            print(line)
+            if line.startswith('@@'):
+                # Hunk header (context line numbers)
+                print(f"{CYAN}{line}{RESET}")
+            elif line.startswith('+'):
+                # Added line
+                print(f"{GREEN}{line}{RESET}")
+            elif line.startswith('-'):
+                # Removed line
+                print(f"{RED}{line}{RESET}")
+            else:
+                # Context line (unchanged)
+                print(line)
+
+
+def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
+    """
+    Resolve a commit reference to a commit hash.
+    Supports:
+    - Full commit hashes
+    - Short commit hashes (7+ characters)
+    - Branch names
+    """
+    # Try as full commit hash first
+    if len(commit_ref) == 40:
+        # Verify it's a valid commit
+        commit_obj = read_object(hst_dir, commit_ref, Commit, store=False)
+        if commit_obj:
+            return commit_ref
+    
+    # Try as short commit hash (expand to full hash)
+    if len(commit_ref) >= 7:
+        objects_dir = hst_dir / "objects"
+        if objects_dir.exists():
+            for subdir in objects_dir.iterdir():
+                if subdir.is_dir() and subdir.name == commit_ref[:2]:
+                    for obj_file in subdir.iterdir():
+                        full_hash = subdir.name + obj_file.name
+                        if full_hash.startswith(commit_ref):
+                            # Verify it's a commit
+                            commit_obj = read_object(hst_dir, full_hash, Commit, store=False)
+                            if commit_obj:
+                                return full_hash
+    
+    # Try as branch name
+    branch_path = hst_dir / "refs" / "heads" / commit_ref
+    if branch_path.exists():
+        return branch_path.read_text().strip()
+    
+    return None
