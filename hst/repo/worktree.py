@@ -3,7 +3,7 @@ from typing import Dict, List
 from hst.repo import HST_DIRNAME
 from hst.repo.objects import read_object
 from hst.repo.index import write_index
-from hst.hst_objects import Commit, Tree, Blob
+from hst.components import Commit, Tree, Blob
 
 
 def checkout_commit(hst_dir: Path, repo_root: Path, commit_oid: str):

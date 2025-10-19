@@ -7,7 +7,7 @@ from hst.repo.head import get_current_commit_oid
 from hst.repo.index import read_index
 from hst.repo.objects import read_object
 from hst.repo.worktree import read_tree_recursive, scan_working_tree
-from hst.hst_objects import Commit, Blob
+from hst.components import Commit, Blob
 from hst.colors import CYAN, GREEN, RED, BOLD, RESET
 
 

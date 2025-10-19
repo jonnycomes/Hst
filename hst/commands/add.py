@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import List, Tuple
-from hst.hst_objects import Blob
+from hst.components import Blob
 from hst.repo import get_repo_paths, HST_DIRNAME
 from hst.repo.index import read_index, write_index
 from hst.repo.worktree import scan_working_tree

@@ -1,7 +1,7 @@
 from pathlib import Path
 import zlib
 from typing import Optional, Type
-from hst.hst_objects import Object, Tree
+from hst.components import Object, Tree
 
 
 def read_object(

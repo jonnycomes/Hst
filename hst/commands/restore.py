@@ -6,7 +6,7 @@ from hst.repo.head import get_current_commit_oid
 from hst.repo.index import read_index, write_index
 from hst.repo.objects import read_object
 from hst.repo.worktree import read_tree_recursive
-from hst.hst_objects import Commit, Blob
+from hst.components import Commit, Blob
 
 
 def run(argv: List[str]):

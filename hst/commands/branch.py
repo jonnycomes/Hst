@@ -5,7 +5,7 @@ from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.index import check_for_staged_changes
 from hst.repo.objects import read_object
-from hst.hst_objects import Commit
+from hst.components import Commit
 from hst.colors import GREEN, RESET
 
 

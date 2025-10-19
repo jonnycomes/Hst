@@ -9,7 +9,7 @@ from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, update_head
 from hst.repo.index import read_index
 from hst.repo.objects import read_object, build_tree
-from hst.hst_objects import Commit
+from hst.components import Commit
 
 
 def run(argv: List[str]):

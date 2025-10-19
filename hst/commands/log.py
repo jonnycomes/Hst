@@ -1,30 +1,53 @@
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Set
 from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.objects import read_object
-from hst.hst_objects import Commit
+from hst.components import Commit
 from hst.colors import CYAN, GREEN, YELLOW, RESET
 
 
 def run(argv: List[str]):
     """
     Run the log command.
+
+    Usage:
+    hst log [--oneline] [<commit>...] - Show commit history
     """
-    # Parse arguments
+    # Parse arguments - separate flags from commit references
     oneline = "--oneline" in argv
+    commit_refs = [arg for arg in argv if not arg.startswith("--")]
 
     repo_root, hst_dir = get_repo_paths()
 
-    # Get starting commit (HEAD)
-    current_commit_oid = get_current_commit_oid(hst_dir)
-    if not current_commit_oid:
-        print("No commits found")
-        return
+    # Determine starting commits
+    starting_commits = []
 
-    # Walk the commit history
-    commits = _get_commit_history(hst_dir, current_commit_oid)
+    if not commit_refs:
+        # No commits specified - start from HEAD
+        current_commit_oid = get_current_commit_oid(hst_dir)
+        if not current_commit_oid:
+            print("No commits found")
+            return
+        starting_commits.append(current_commit_oid)
+    else:
+        # Resolve each commit reference
+        for commit_ref in commit_refs:
+            commit_oid = _resolve_commit_ref(hst_dir, commit_ref)
+            if not commit_oid:
+                print(f"fatal: bad revision '{commit_ref}'")
+                sys.exit(1)
+            starting_commits.append(commit_oid)
+
+    # Walk the commit history from all starting points
+    if len(starting_commits) == 1:
+        # Single starting commit - use the original simple history walk
+        commits = _get_commit_history(hst_dir, starting_commits[0])
+    else:
+        # Multiple starting commits - merge their histories
+        commits = _get_commit_history_from_multiple(hst_dir, starting_commits)
 
     if not commits:
         print("No commits found")
@@ -165,3 +188,70 @@ def _format_timestamp(timestamp: int) -> str:
     """Format a Unix timestamp for display."""
     dt = datetime.fromtimestamp(timestamp)
     return dt.strftime("%a %b %d %H:%M:%S %Y")
+
+
+def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
+    """
+    Resolve a commit reference to a commit hash.
+    Supports:
+    - Full commit hashes
+    - Short commit hashes (7+ characters)
+    - Branch names
+    """
+    # Try as full commit hash first
+    if len(commit_ref) == 40:
+        # Verify it's a valid commit
+        commit_obj = read_object(hst_dir, commit_ref, Commit, store=False)
+        if commit_obj:
+            return commit_ref
+
+    # Try as short commit hash (expand to full hash)
+    if len(commit_ref) >= 7:
+        objects_dir = hst_dir / "objects"
+        if objects_dir.exists():
+            for subdir in objects_dir.iterdir():
+                if subdir.is_dir() and subdir.name == commit_ref[:2]:
+                    for obj_file in subdir.iterdir():
+                        full_hash = subdir.name + obj_file.name
+                        if full_hash.startswith(commit_ref):
+                            # Verify it's a commit
+                            commit_obj = read_object(
+                                hst_dir, full_hash, Commit, store=False
+                            )
+                            if commit_obj:
+                                return full_hash
+
+    # Try as branch name
+    branch_path = hst_dir / "refs" / "heads" / commit_ref
+    if branch_path.exists():
+        return branch_path.read_text().strip()
+
+    return None
+
+
+def _get_commit_history_from_multiple(
+    hst_dir: Path, start_commit_oids: List[str]
+) -> List[tuple]:
+    """
+    Walk the commit history starting from multiple commits, merging the results.
+
+    For multiple commits, this shows all commits reachable from any of the starting commits.
+
+    Returns:
+        List of (commit_oid, commit_obj) tuples in reverse chronological order
+    """
+    all_commits = {}  # commit_oid -> (commit_oid, commit_obj)
+
+    # Gather commits from all starting points
+    for start_oid in start_commit_oids:
+        commits = _get_commit_history(hst_dir, start_oid)
+        for commit_oid, commit_obj in commits:
+            if commit_oid not in all_commits:
+                all_commits[commit_oid] = (commit_oid, commit_obj)
+
+    # Sort by timestamp (most recent first)
+    sorted_commits = sorted(
+        all_commits.values(), key=lambda x: x[1].author_timestamp, reverse=True
+    )
+
+    return sorted_commits

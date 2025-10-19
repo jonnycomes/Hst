@@ -9,7 +9,7 @@ from hst.repo.worktree import (
     scan_working_tree,
     path_matches_filter,
 )
-from hst.hst_objects import Commit
+from hst.components import Commit
 from hst.colors import RED, GREEN, RESET
 
 

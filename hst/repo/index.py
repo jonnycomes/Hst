@@ -28,7 +28,7 @@ def check_for_staged_changes(hst_dir: Path) -> bool:
     from hst.repo.head import get_current_commit_oid
     from hst.repo.objects import read_object
     from hst.repo.worktree import read_tree_recursive
-    from hst.hst_objects import Commit
+    from hst.components import Commit
 
     # Read current index
     index = read_index(hst_dir)
