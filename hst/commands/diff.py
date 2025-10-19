@@ -7,6 +7,7 @@ from hst.repo.head import get_current_commit_oid
 from hst.repo.index import read_index
 from hst.repo.objects import read_object
 from hst.repo.worktree import read_tree_recursive, scan_working_tree
+from hst.repo.refs import resolve_commit_ref
 from hst.components import Commit, Blob
 from hst.colors import CYAN, GREEN, RED, BOLD, RESET
 
@@ -79,7 +80,7 @@ def _diff_index_vs_head(repo_root: Path, hst_dir: Path):
 def _diff_worktree_vs_commit(repo_root: Path, hst_dir: Path, commit_ref: str):
     """Show differences between working tree and a specific commit."""
     # Resolve commit reference
-    commit_oid = _resolve_commit_ref(hst_dir, commit_ref)
+    commit_oid = resolve_commit_ref(hst_dir, commit_ref)
     if not commit_oid:
         print(f"fatal: bad revision '{commit_ref}'")
         sys.exit(1)
@@ -105,12 +106,12 @@ def _diff_commit_vs_commit(
 ):
     """Show differences between two commits."""
     # Resolve commit references
-    commit1_oid = _resolve_commit_ref(hst_dir, commit1_ref)
+    commit1_oid = resolve_commit_ref(hst_dir, commit1_ref)
     if not commit1_oid:
         print(f"fatal: bad revision '{commit1_ref}'")
         sys.exit(1)
 
-    commit2_oid = _resolve_commit_ref(hst_dir, commit2_ref)
+    commit2_oid = resolve_commit_ref(hst_dir, commit2_ref)
     if not commit2_oid:
         print(f"fatal: bad revision '{commit2_ref}'")
         sys.exit(1)
@@ -264,40 +265,3 @@ def _show_unified_diff(lines1: List[str], lines2: List[str]):
                 print(line)
 
 
-def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
-    """
-    Resolve a commit reference to a commit hash.
-    Supports:
-    - Full commit hashes
-    - Short commit hashes (7+ characters)
-    - Branch names
-    """
-    # Try as full commit hash first
-    if len(commit_ref) == 40:
-        # Verify it's a valid commit
-        commit_obj = read_object(hst_dir, commit_ref, Commit, store=False)
-        if commit_obj:
-            return commit_ref
-
-    # Try as short commit hash (expand to full hash)
-    if len(commit_ref) >= 7:
-        objects_dir = hst_dir / "objects"
-        if objects_dir.exists():
-            for subdir in objects_dir.iterdir():
-                if subdir.is_dir() and subdir.name == commit_ref[:2]:
-                    for obj_file in subdir.iterdir():
-                        full_hash = subdir.name + obj_file.name
-                        if full_hash.startswith(commit_ref):
-                            # Verify it's a commit
-                            commit_obj = read_object(
-                                hst_dir, full_hash, Commit, store=False
-                            )
-                            if commit_obj:
-                                return full_hash
-
-    # Try as branch name
-    branch_path = hst_dir / "refs" / "heads" / commit_ref
-    if branch_path.exists():
-        return branch_path.read_text().strip()
-
-    return None

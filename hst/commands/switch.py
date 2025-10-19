@@ -3,8 +3,7 @@ from pathlib import Path
 from typing import List
 from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
-from hst.repo.index import check_for_staged_changes
-from hst.repo.worktree import checkout_commit
+from hst.repo.worktree import check_for_staged_changes, checkout_commit
 
 
 def run(argv: List[str]):

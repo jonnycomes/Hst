@@ -91,7 +91,7 @@ hst commit -m "commit message"
 - ◻️ `hst remote add origin <repo>`
 
 ### `clone`
-- ◻️ `hst clone`
+- ✅ `hst clone <local repo>`
 
 ### `push`
 - ◻️ `hst push`

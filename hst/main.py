@@ -10,6 +10,7 @@ from hst.commands import (
     log,
     diff,
     merge,
+    clone,
 )
 
 
@@ -25,6 +26,7 @@ def main():
         "log",
         "diff",
         "merge",
+        "clone",
     ]
 
     if len(sys.argv) < 2 or sys.argv[1] not in cmnds:
@@ -54,6 +56,8 @@ def main():
         diff.run(args)
     elif command == "merge":
         merge.run(args)
+    elif command == "clone":
+        clone.run(args)
     else:
         print(f"Unknown command: {command}")
 

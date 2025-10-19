@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Dict, List
 from hst.repo import HST_DIRNAME
 from hst.repo.objects import read_object
-from hst.repo.index import write_index
+from hst.repo.utils import path_matches_filter
 from hst.components import Commit, Tree, Blob
 
 
@@ -10,6 +10,8 @@ def checkout_commit(hst_dir: Path, repo_root: Path, commit_oid: str):
     """
     Update the working directory and index to match the given commit.
     """
+    from hst.repo.index import write_index
+    
     # Read the commit object
     commit_obj = read_object(hst_dir, commit_oid, Commit, store=False)
     if not commit_obj:
@@ -23,6 +25,30 @@ def checkout_commit(hst_dir: Path, repo_root: Path, commit_oid: str):
     clear_working_directory(repo_root)
 
     # Restore files from the tree
+    restore_files_from_tree(hst_dir, repo_root, tree_mapping)
+
+    # Update index to match the tree
+    write_index(hst_dir, tree_mapping)
+
+    return True
+
+
+def checkout_from_commit(hst_dir: Path, repo_root: Path, commit_oid: str):
+    """
+    Restore working directory and index from a commit without clearing first.
+    This is useful for operations like clone where the working directory is already empty.
+    """
+    from hst.repo.index import write_index
+    
+    # Read the commit object
+    commit_obj = read_object(hst_dir, commit_oid, Commit, store=False)
+    if not commit_obj:
+        raise Exception(f"Could not read commit {commit_oid}")
+
+    # Get the tree mapping from the commit
+    tree_mapping = read_tree_recursive(hst_dir, commit_obj.tree)
+
+    # Restore files from the tree (don't clear since working directory may be empty/new)
     restore_files_from_tree(hst_dir, repo_root, tree_mapping)
 
     # Update index to match the tree
@@ -118,23 +144,34 @@ def scan_working_tree(
     return mapping
 
 
-def path_matches_filter(file_path: str, filter_paths: List[str]) -> bool:
+def check_for_staged_changes(hst_dir: Path) -> bool:
     """
-    Check if a file path should be included based on filter paths.
-    Returns True if the file_path matches any of the filter_paths.
+    Check if there are staged changes that differ from HEAD.
+    Returns True if there are staged changes, False otherwise.
     """
-    file_path_parts = Path(file_path).parts
+    from hst.repo.head import get_current_commit_oid
+    from hst.repo.objects import read_object
+    from hst.repo.index import read_index
+    from hst.components import Commit
 
-    for filter_path in filter_paths:
-        filter_path_parts = Path(filter_path).parts
+    # Read current index
+    index = read_index(hst_dir)
 
-        # Exact match
-        if file_path == filter_path:
-            return True
+    # Get current commit
+    current_commit_oid = get_current_commit_oid(hst_dir)
+    if not current_commit_oid:
+        # No commits yet, any files in index are staged changes
+        return len(index) > 0
 
-        # Check if file is under a directory filter
-        if len(file_path_parts) >= len(filter_path_parts):
-            if file_path_parts[: len(filter_path_parts)] == filter_path_parts:
-                return True
+    # Read HEAD commit tree
+    commit_obj = read_object(hst_dir, current_commit_oid, Commit, store=False)
+    if not commit_obj:
+        return len(index) > 0
 
-    return False
+    head_tree = read_tree_recursive(hst_dir, commit_obj.tree)
+
+    # Compare index with HEAD tree
+    return index != head_tree
+
+
+# End of file

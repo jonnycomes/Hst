@@ -5,6 +5,7 @@ from typing import List, Dict, Set
 from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.objects import read_object
+from hst.repo.refs import resolve_commit_ref
 from hst.components import Commit
 from hst.colors import CYAN, GREEN, YELLOW, RESET
 
@@ -35,7 +36,7 @@ def run(argv: List[str]):
     else:
         # Resolve each commit reference
         for commit_ref in commit_refs:
-            commit_oid = _resolve_commit_ref(hst_dir, commit_ref)
+            commit_oid = resolve_commit_ref(hst_dir, commit_ref)
             if not commit_oid:
                 print(f"fatal: bad revision '{commit_ref}'")
                 sys.exit(1)
@@ -188,45 +189,6 @@ def _format_timestamp(timestamp: int) -> str:
     """Format a Unix timestamp for display."""
     dt = datetime.fromtimestamp(timestamp)
     return dt.strftime("%a %b %d %H:%M:%S %Y")
-
-
-def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
-    """
-    Resolve a commit reference to a commit hash.
-    Supports:
-    - Full commit hashes
-    - Short commit hashes (7+ characters)
-    - Branch names
-    """
-    # Try as full commit hash first
-    if len(commit_ref) == 40:
-        # Verify it's a valid commit
-        commit_obj = read_object(hst_dir, commit_ref, Commit, store=False)
-        if commit_obj:
-            return commit_ref
-
-    # Try as short commit hash (expand to full hash)
-    if len(commit_ref) >= 7:
-        objects_dir = hst_dir / "objects"
-        if objects_dir.exists():
-            for subdir in objects_dir.iterdir():
-                if subdir.is_dir() and subdir.name == commit_ref[:2]:
-                    for obj_file in subdir.iterdir():
-                        full_hash = subdir.name + obj_file.name
-                        if full_hash.startswith(commit_ref):
-                            # Verify it's a commit
-                            commit_obj = read_object(
-                                hst_dir, full_hash, Commit, store=False
-                            )
-                            if commit_obj:
-                                return full_hash
-
-    # Try as branch name
-    branch_path = hst_dir / "refs" / "heads" / commit_ref
-    if branch_path.exists():
-        return branch_path.read_text().strip()
-
-    return None
 
 
 def _get_commit_history_from_multiple(

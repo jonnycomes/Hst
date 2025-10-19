@@ -3,9 +3,8 @@ from pathlib import Path
 from typing import List
 from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
-from hst.repo.index import check_for_staged_changes
-from hst.repo.objects import read_object
-from hst.components import Commit
+from hst.repo.worktree import check_for_staged_changes
+from hst.repo.refs import resolve_commit_ref, is_ancestor
 from hst.colors import GREEN, RESET
 
 
@@ -49,7 +48,7 @@ def _list_branches(hst_dir: Path):
 def _create_branch(hst_dir: Path, name: str, commit_ref: str = None):
     # Resolve commit reference
     if commit_ref:
-        commit_hash = _resolve_commit_ref(hst_dir, commit_ref)
+        commit_hash = resolve_commit_ref(hst_dir, commit_ref)
         if not commit_hash:
             print(f"fatal: not a valid object name: '{commit_ref}'")
             sys.exit(1)
@@ -127,72 +126,4 @@ def _is_branch_merged(hst_dir: Path, branch_name: str) -> bool:
         return True
 
     # Walk back through current branch history to see if branch_commit is an ancestor
-    return _is_ancestor(hst_dir, branch_commit, current_commit)
-
-
-def _is_ancestor(hst_dir: Path, ancestor_oid: str, descendant_oid: str) -> bool:
-    """
-    Check if ancestor_oid is an ancestor of descendant_oid.
-    Walk back through the commit history from descendant to see if we reach ancestor.
-    """
-    if ancestor_oid == descendant_oid:
-        return True
-
-    visited = set()
-    queue = [descendant_oid]
-
-    while queue:
-        current_oid = queue.pop(0)
-
-        if current_oid in visited:
-            continue
-        visited.add(current_oid)
-
-        if current_oid == ancestor_oid:
-            return True
-
-        # Read the commit and add its parents to the queue
-        commit_obj = read_object(hst_dir, current_oid, Commit, store=False)
-        if commit_obj and commit_obj.parents:
-            queue.extend(commit_obj.parents)
-
-    return False
-
-
-def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
-    """
-    Resolve a commit reference to a commit hash.
-    Supports:
-    - Full commit hashes
-    - Short commit hashes (7+ characters)
-    - Branch names
-    """
-    # Try as full commit hash first
-    if len(commit_ref) == 40:
-        # Verify it's a valid commit
-        commit_obj = read_object(hst_dir, commit_ref, Commit, store=False)
-        if commit_obj:
-            return commit_ref
-
-    # Try as short commit hash (expand to full hash)
-    if len(commit_ref) >= 7:
-        objects_dir = hst_dir / "objects"
-        if objects_dir.exists():
-            for subdir in objects_dir.iterdir():
-                if subdir.is_dir() and subdir.name == commit_ref[:2]:
-                    for obj_file in subdir.iterdir():
-                        full_hash = subdir.name + obj_file.name
-                        if full_hash.startswith(commit_ref):
-                            # Verify it's a commit
-                            commit_obj = read_object(
-                                hst_dir, full_hash, Commit, store=False
-                            )
-                            if commit_obj:
-                                return full_hash
-
-    # Try as branch name
-    branch_path = hst_dir / "refs" / "heads" / commit_ref
-    if branch_path.exists():
-        return branch_path.read_text().strip()
-
-    return None
+    return is_ancestor(hst_dir, branch_commit, current_commit)

@@ -4,11 +4,8 @@ from hst.repo import get_repo_paths
 from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.index import read_index
 from hst.repo.objects import read_object
-from hst.repo.worktree import (
-    read_tree_recursive,
-    scan_working_tree,
-    path_matches_filter,
-)
+from hst.repo.worktree import read_tree_recursive, scan_working_tree
+from hst.repo.utils import parse_path_arguments, filter_dict_by_paths, path_matches_filter
 from hst.components import Commit
 from hst.colors import RED, GREEN, RESET
 
@@ -20,7 +17,7 @@ def run(argv: List[str]):
     repo_root, hst_dir = get_repo_paths()
 
     # Parse path arguments
-    filter_paths = _parse_path_arguments(argv, repo_root) if argv else None
+    filter_paths = parse_path_arguments(argv, repo_root) if argv else None
 
     branch, head_tree = _get_branch_and_head_tree(hst_dir)
     index = read_index(hst_dir)
@@ -28,8 +25,8 @@ def run(argv: List[str]):
 
     # Filter other collections by paths if specified
     if filter_paths:
-        head_tree = _filter_tree_by_paths(head_tree, filter_paths)
-        index = _filter_index_by_paths(index, filter_paths)
+        head_tree = filter_dict_by_paths(head_tree, filter_paths, path_matches_filter)
+        index = filter_dict_by_paths(index, filter_paths, path_matches_filter)
 
     staged, unstaged, untracked = _classify_changes(head_tree, index, worktree)
 
@@ -111,60 +108,3 @@ def _classify_changes(
     return staged, unstaged, untracked
 
 
-def _parse_path_arguments(argv: List[str], repo_root: Path) -> List[str]:
-    """
-    Parse and validate path arguments.
-    Returns a list of normalized relative paths from repo root.
-    """
-    filter_paths = []
-    for arg in argv:
-        path = Path(arg)
-
-        # Convert to absolute path
-        if not path.is_absolute():
-            path = Path.cwd() / path
-
-        # Normalize the path
-        try:
-            path = path.resolve()
-        except (OSError, RuntimeError):
-            print(f"Warning: Cannot resolve path '{arg}', skipping")
-            continue
-
-        # Check if path is within repo
-        try:
-            rel_path = path.relative_to(repo_root)
-            filter_paths.append(str(rel_path))
-        except ValueError:
-            print(f"Warning: Path '{arg}' is not within the repository, skipping")
-            continue
-
-    return filter_paths
-
-
-def _filter_tree_by_paths(
-    tree: Dict[str, str], filter_paths: List[str]
-) -> Dict[str, str]:
-    """Filter tree entries to only include paths matching the filter."""
-    if not filter_paths:
-        return tree
-
-    filtered = {}
-    for path, oid in tree.items():
-        if path_matches_filter(path, filter_paths):
-            filtered[path] = oid
-    return filtered
-
-
-def _filter_index_by_paths(
-    index: Dict[str, str], filter_paths: List[str]
-) -> Dict[str, str]:
-    """Filter index entries to only include paths matching the filter."""
-    if not filter_paths:
-        return index
-
-    filtered = {}
-    for path, oid in index.items():
-        if path_matches_filter(path, filter_paths):
-            filtered[path] = oid
-    return filtered
