@@ -83,7 +83,7 @@ def _diff_worktree_vs_commit(repo_root: Path, hst_dir: Path, commit_ref: str):
     if not commit_oid:
         print(f"fatal: bad revision '{commit_ref}'")
         sys.exit(1)
-    
+
     print(f"{BOLD}diff --hst a/{commit_oid[:7]} b/worktree{RESET}")
 
     # Get commit tree
@@ -109,12 +109,12 @@ def _diff_commit_vs_commit(
     if not commit1_oid:
         print(f"fatal: bad revision '{commit1_ref}'")
         sys.exit(1)
-    
+
     commit2_oid = _resolve_commit_ref(hst_dir, commit2_ref)
     if not commit2_oid:
         print(f"fatal: bad revision '{commit2_ref}'")
         sys.exit(1)
-    
+
     print(f"{BOLD}diff --hst a/{commit1_oid[:7]} b/{commit2_oid[:7]}{RESET}")
 
     # Get first commit tree
@@ -250,13 +250,13 @@ def _show_unified_diff(lines1: List[str], lines2: List[str]):
     diff_lines = list(diff)
     if len(diff_lines) > 2:
         for line in diff_lines[2:]:
-            if line.startswith('@@'):
+            if line.startswith("@@"):
                 # Hunk header (context line numbers)
                 print(f"{CYAN}{line}{RESET}")
-            elif line.startswith('+'):
+            elif line.startswith("+"):
                 # Added line
                 print(f"{GREEN}{line}{RESET}")
-            elif line.startswith('-'):
+            elif line.startswith("-"):
                 # Removed line
                 print(f"{RED}{line}{RESET}")
             else:
@@ -278,7 +278,7 @@ def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
         commit_obj = read_object(hst_dir, commit_ref, Commit, store=False)
         if commit_obj:
             return commit_ref
-    
+
     # Try as short commit hash (expand to full hash)
     if len(commit_ref) >= 7:
         objects_dir = hst_dir / "objects"
@@ -289,13 +289,15 @@ def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
                         full_hash = subdir.name + obj_file.name
                         if full_hash.startswith(commit_ref):
                             # Verify it's a commit
-                            commit_obj = read_object(hst_dir, full_hash, Commit, store=False)
+                            commit_obj = read_object(
+                                hst_dir, full_hash, Commit, store=False
+                            )
                             if commit_obj:
                                 return full_hash
-    
+
     # Try as branch name
     branch_path = hst_dir / "refs" / "heads" / commit_ref
     if branch_path.exists():
         return branch_path.read_text().strip()
-    
+
     return None

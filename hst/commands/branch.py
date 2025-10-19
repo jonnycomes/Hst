@@ -8,6 +8,7 @@ from hst.repo.objects import read_object
 from hst.hst_objects import Commit
 from hst.colors import GREEN, RESET
 
+
 def run(argv: List[str]):
     """
     Run the branch command
@@ -124,7 +125,7 @@ def _is_branch_merged(hst_dir: Path, branch_name: str) -> bool:
     # If they point to the same commit, it's merged
     if current_commit == branch_commit:
         return True
-    
+
     # Walk back through current branch history to see if branch_commit is an ancestor
     return _is_ancestor(hst_dir, branch_commit, current_commit)
 
@@ -133,28 +134,28 @@ def _is_ancestor(hst_dir: Path, ancestor_oid: str, descendant_oid: str) -> bool:
     """
     Check if ancestor_oid is an ancestor of descendant_oid.
     Walk back through the commit history from descendant to see if we reach ancestor.
-    """    
+    """
     if ancestor_oid == descendant_oid:
         return True
-    
+
     visited = set()
     queue = [descendant_oid]
-    
+
     while queue:
         current_oid = queue.pop(0)
-        
+
         if current_oid in visited:
             continue
         visited.add(current_oid)
-        
+
         if current_oid == ancestor_oid:
             return True
-        
+
         # Read the commit and add its parents to the queue
         commit_obj = read_object(hst_dir, current_oid, Commit, store=False)
         if commit_obj and commit_obj.parents:
             queue.extend(commit_obj.parents)
-    
+
     return False
 
 
@@ -172,7 +173,7 @@ def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
         commit_obj = read_object(hst_dir, commit_ref, Commit, store=False)
         if commit_obj:
             return commit_ref
-    
+
     # Try as short commit hash (expand to full hash)
     if len(commit_ref) >= 7:
         objects_dir = hst_dir / "objects"
@@ -183,13 +184,15 @@ def _resolve_commit_ref(hst_dir: Path, commit_ref: str) -> str:
                         full_hash = subdir.name + obj_file.name
                         if full_hash.startswith(commit_ref):
                             # Verify it's a commit
-                            commit_obj = read_object(hst_dir, full_hash, Commit, store=False)
+                            commit_obj = read_object(
+                                hst_dir, full_hash, Commit, store=False
+                            )
                             if commit_obj:
                                 return full_hash
-    
+
     # Try as branch name
     branch_path = hst_dir / "refs" / "heads" / commit_ref
     if branch_path.exists():
         return branch_path.read_text().strip()
-    
+
     return None

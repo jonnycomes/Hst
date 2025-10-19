@@ -12,6 +12,7 @@ from hst.repo.worktree import (
 from hst.hst_objects import Commit
 from hst.colors import RED, GREEN, RESET
 
+
 def run(argv: List[str]):
     """
     Run the status command.

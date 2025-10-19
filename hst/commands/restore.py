@@ -39,6 +39,14 @@ def run(argv: List[str]):
 
 def _restore_worktree(file_paths: List[str], repo_root: Path, hst_dir: Path):
     """Restore files from index to working tree (discard working tree changes)."""
+    # Get HEAD tree to check if files exist there
+    current_commit_oid = get_current_commit_oid(hst_dir)
+    head_tree = {}
+    if current_commit_oid:
+        commit_obj = read_object(hst_dir, current_commit_oid, Commit, store=False)
+        if commit_obj:
+            head_tree = read_tree_recursive(hst_dir, commit_obj.tree)
+
     index = read_index(hst_dir)
     restored_files = []
 
@@ -65,21 +73,34 @@ def _restore_worktree(file_paths: List[str], repo_root: Path, hst_dir: Path):
 
         # Restore each matching file
         for file_rel_path in matching_files:
-            blob_oid = index[file_rel_path]
-            blob_obj = read_object(hst_dir, blob_oid, Blob, store=False)
-            if not blob_obj:
-                print(f"error: cannot read blob {blob_oid} for {file_rel_path}")
-                continue
-
-            # Write blob content to working tree
             full_path = repo_root / file_rel_path
-            try:
-                # Create parent directories if needed
-                full_path.parent.mkdir(parents=True, exist_ok=True)
-                full_path.write_bytes(blob_obj.data)
-                restored_files.append(file_rel_path)
-            except OSError as e:
-                print(f"error: cannot restore {file_rel_path}: {e}")
+
+            # Check if file exists in HEAD
+            if file_rel_path in head_tree:
+                # File exists in HEAD - restore from index (which should match HEAD or be staged)
+                blob_oid = index[file_rel_path]
+                blob_obj = read_object(hst_dir, blob_oid, Blob, store=False)
+                if not blob_obj:
+                    print(f"error: cannot read blob {blob_oid} for {file_rel_path}")
+                    continue
+
+                # Write blob content to working tree
+                try:
+                    # Create parent directories if needed
+                    full_path.parent.mkdir(parents=True, exist_ok=True)
+                    full_path.write_bytes(blob_obj.data)
+                    restored_files.append(file_rel_path)
+                except OSError as e:
+                    print(f"error: cannot restore {file_rel_path}: {e}")
+            else:
+                # File doesn't exist in HEAD but is in index (new file)
+                # Remove it from working tree to match HEAD state
+                try:
+                    if full_path.exists():
+                        full_path.unlink()
+                        restored_files.append(file_rel_path)
+                except OSError as e:
+                    print(f"error: cannot remove {file_rel_path}: {e}")
 
     if restored_files:
         print(f"Restored {len(restored_files)} file(s) from index to working tree:")
