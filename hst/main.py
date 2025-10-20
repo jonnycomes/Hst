@@ -15,6 +15,7 @@ from hst.commands import (
     push,
     pull,
     fetch,
+    rebase,
 )
 
 
@@ -35,6 +36,7 @@ def main():
         "push",
         "pull",
         "fetch",
+        "rebase",
     ]
 
     if len(sys.argv) < 2 or sys.argv[1] not in cmnds:
@@ -74,6 +76,8 @@ def main():
         pull.run(args)
     elif command == "fetch":
         fetch.run(args)
+    elif command == "rebase":
+        rebase.run(args)
     else:
         print(f"Unknown command: {command}")
 

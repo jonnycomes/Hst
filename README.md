@@ -84,7 +84,9 @@ hst commit -m "commit message"
 - ◻️ `hst log --graph`
 
 ### `rebase`
-- ◻️ `hst rebase -i <commit-ish>`
+- ✅ `hst rebase <upstream>`
+- ✅ `hst rebase <upstream> <branch>`
+- ◻️ `hst rebase -i <upstream>`
 
 ### `remote`
 - ✅ `hst remote`
