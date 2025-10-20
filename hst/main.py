@@ -13,6 +13,8 @@ from hst.commands import (
     clone,
     remote,
     push,
+    pull,
+    fetch,
 )
 
 
@@ -31,6 +33,8 @@ def main():
         "clone",
         "remote",
         "push",
+        "pull",
+        "fetch",
     ]
 
     if len(sys.argv) < 2 or sys.argv[1] not in cmnds:
@@ -66,6 +70,10 @@ def main():
         remote.run(args)
     elif command == "push":
         push.run(args)
+    elif command == "pull":
+        pull.run(args)
+    elif command == "fetch":
+        fetch.run(args)
     else:
         print(f"Unknown command: {command}")
 

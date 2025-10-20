@@ -8,7 +8,7 @@ from hst.repo.config import add_remote, remove_remote, list_remotes, get_remote_
 def run(argv: List[str]):
     """
     Run the remote command.
-    
+
     Usage:
     hst remote                    - list remote names
     hst remote -v                 - list remote names and URLs
@@ -17,7 +17,7 @@ def run(argv: List[str]):
     hst remote get-url <name>     - get URL of a remote
     """
     repo_root, hst_dir = get_repo_paths()
-    
+
     if not argv:
         # List remotes (names only)
         list_remotes(hst_dir, verbose=False)
@@ -40,7 +40,9 @@ def run(argv: List[str]):
             sys.exit(1)
         _get_remote_url(hst_dir, argv[1])
     else:
-        print("Usage: hst remote [-v] | add <name> <url> | remove <name> | get-url <name>")
+        print(
+            "Usage: hst remote [-v] | add <name> <url> | remove <name> | get-url <name>"
+        )
         sys.exit(1)
 
 
@@ -56,7 +58,7 @@ def _add_remote(hst_dir: Path, name: str, url: str):
             print(f"fatal: '{url}' does not appear to be a hst repository")
             sys.exit(1)
     # For non-local URLs, we'll accept them as-is for future use
-    
+
     if add_remote(hst_dir, name, url):
         print(f"Added remote '{name}' -> '{url}'")
     else:

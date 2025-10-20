@@ -98,7 +98,7 @@ def _get_commit_history(hst_dir: Path, start_commit_oid: str) -> List[tuple]:
 def _get_commit_to_branches_mapping(hst_dir: Path) -> Dict[str, Set[str]]:
     """Create a mapping from commit OID to set of branch names that point to it."""
     commit_to_branches = {}
-    
+
     # Scan local branches
     refs_heads = hst_dir / "refs" / "heads"
     if refs_heads.exists():
@@ -113,7 +113,7 @@ def _get_commit_to_branches_mapping(hst_dir: Path) -> Dict[str, Set[str]]:
                 except Exception:
                     # Skip invalid branch files
                     continue
-    
+
     # Scan remote tracking branches
     refs_remotes = hst_dir / "refs" / "remotes"
     if refs_remotes.exists():
@@ -157,7 +157,7 @@ def _format_branch_info(
     # Separate local and remote branches
     local_branches = []
     remote_branches = []
-    
+
     for branch in branches:
         if "/" in branch:  # Remote branch (format: remote/branch)
             remote_branches.append(branch)
@@ -167,7 +167,7 @@ def _format_branch_info(
     # Add local branches (green)
     for branch in sorted(local_branches):
         branch_parts.append(f"{GREEN}{branch}{RESET}")
-    
+
     # Add remote branches (red)
     for branch in sorted(remote_branches):
         branch_parts.append(f"{RED}{branch}{RESET}")

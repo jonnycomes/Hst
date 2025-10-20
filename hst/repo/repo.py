@@ -1,7 +1,7 @@
 import sys
 import shutil
 from pathlib import Path
-from typing import Tuple, Set, List, Callable, Optional
+from typing import Tuple, List, Callable, Optional
 
 HST_DIRNAME = ".hst"
 
@@ -93,8 +93,9 @@ def validate_repository(repo_path: Path) -> Optional[Path]:
     return hst_dir
 
 
-def walk_commit_objects(hst_dir: Path, start_commit: str,
-                       visitor: Callable[[str, type], bool]) -> bool:
+def walk_commit_objects(
+    hst_dir: Path, start_commit: str, visitor: Callable[[str, type], bool]
+) -> bool:
     """
     Walk through all objects reachable from a commit.
 
@@ -106,6 +107,7 @@ def walk_commit_objects(hst_dir: Path, start_commit: str,
     Returns:
         True if walk completed successfully, False if error occurred
     """
+    # Import here to avoid circular imports
     from hst.repo.objects import read_object
     from hst.components import Commit, Tree, Blob
 
@@ -132,7 +134,9 @@ def walk_commit_objects(hst_dir: Path, start_commit: str,
         if isinstance(obj, Commit):
             queue.append((obj.tree, Tree))
             for parent in obj.parents:
-                if parent and parent != 'None':  # Skip None parents (both None and string 'None')
+                if (
+                    parent and parent != "None"
+                ):  # Skip None parents (both None and string 'None')
                     queue.append((parent, Commit))
         elif isinstance(obj, Tree):
             for mode, name, child_hash in obj.entries:
@@ -144,23 +148,9 @@ def walk_commit_objects(hst_dir: Path, start_commit: str,
     return True
 
 
-def copy_objects_to_repository(source_hst_dir: Path, dest_hst_dir: Path, 
-                              start_commit: str) -> bool:
-    """
-    Copy all objects reachable from start_commit to the destination repository.
-    Only copies objects that don't already exist in the destination.
-    
-    Args:
-        source_hst_dir: Source .hst directory
-        dest_hst_dir: Destination .hst directory  
-        start_commit: Starting commit hash
-        
-    Returns:
-        True if successful, False otherwise
-    """
-    # Collect objects that need to be copied
-    objects_to_copy = []
-    
+def _collect_missing_objects(dest_hst_dir: Path, objects_to_copy: List[str]):
+    """Create a visitor function that collects missing objects."""
+
     def collect_missing_objects(obj_hash: str, obj_type: type) -> bool:
         # Check if object already exists in destination
         dest_obj_path = dest_hst_dir / "objects" / obj_hash[:2] / obj_hash[2:]
@@ -168,30 +158,51 @@ def copy_objects_to_repository(source_hst_dir: Path, dest_hst_dir: Path,
             # Mark for copying
             objects_to_copy.append(obj_hash)
         return True  # Continue walking
-    
+
+    return collect_missing_objects
+
+
+def copy_objects_to_repository(
+    source_hst_dir: Path, dest_hst_dir: Path, start_commit: str
+) -> bool:
+    """
+    Copy all objects reachable from start_commit to the destination repository.
+    Only copies objects that don't already exist in the destination.
+
+    Args:
+        source_hst_dir: Source .hst directory
+        dest_hst_dir: Destination .hst directory
+        start_commit: Starting commit hash
+
+    Returns:
+        True if successful, False otherwise
+    """
+    # Collect objects that need to be copied
+    objects_to_copy = []
+
     # Walk all objects reachable from the commit
-    if not walk_commit_objects(source_hst_dir, start_commit, collect_missing_objects):
+    collect_visitor = _collect_missing_objects(dest_hst_dir, objects_to_copy)
+    if not walk_commit_objects(source_hst_dir, start_commit, collect_visitor):
         print(f"error: failed to walk objects from commit {start_commit}")
         return False
-    
+
     # Copy all collected objects
     for obj_hash in objects_to_copy:
         if not copy_single_object(source_hst_dir, dest_hst_dir, obj_hash):
             return False
-    
+
     return True
 
 
-def copy_single_object(source_hst_dir: Path, dest_hst_dir: Path, 
-                      obj_hash: str) -> bool:
+def copy_single_object(source_hst_dir: Path, dest_hst_dir: Path, obj_hash: str) -> bool:
     """
     Copy a single object from source to destination repository.
-    
+
     Args:
         source_hst_dir: Source .hst directory
         dest_hst_dir: Destination .hst directory
         obj_hash: Hash of object to copy
-        
+
     Returns:
         True if successful, False otherwise
     """
@@ -200,14 +211,14 @@ def copy_single_object(source_hst_dir: Path, dest_hst_dir: Path,
     if not source_obj_path.exists():
         print(f"error: source object {obj_hash} not found")
         return False
-    
+
     # Destination object path
     dest_obj_dir = dest_hst_dir / "objects" / obj_hash[:2]
     dest_obj_path = dest_obj_dir / obj_hash[2:]
-    
+
     # Create directory if needed
     dest_obj_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Copy the object file
     try:
         shutil.copy2(source_obj_path, dest_obj_path)

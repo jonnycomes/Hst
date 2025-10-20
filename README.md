@@ -103,10 +103,11 @@ hst commit -m "commit message"
 - ✅ `hst push <remote> <local_branch>:<remote_branch>`
 
 ### `pull`
-- ◻️ `hst pull`
+- ✅ `hst pull [<remote>] [<branch>]`
 
 ### `fetch`
-- ◻️ `hst fetch`
+- ✅ `hst fetch [<remote>]`
+- ✅ `hst fetch [<remote>] [<refspec>...]`
 
 ### `revert`
 - ◻️ `hst revert`

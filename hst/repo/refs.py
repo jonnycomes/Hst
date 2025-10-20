@@ -7,16 +7,17 @@ from hst.components import Commit
 def resolve_commit_ref(hst_dir: Path, commit_ref: str) -> Optional[str]:
     """
     Resolve a commit reference to a commit hash.
-    
+
     Supports:
     - Full commit hashes (40 characters)
     - Short commit hashes (7+ characters)
     - Branch names
-    
+    - Remote branch names (remote/branch format)
+
     Args:
         hst_dir: Path to the .hst directory
         commit_ref: The reference to resolve
-        
+
     Returns:
         Full commit hash if found, None otherwise
     """
@@ -43,10 +44,22 @@ def resolve_commit_ref(hst_dir: Path, commit_ref: str) -> Optional[str]:
                             if commit_obj:
                                 return full_hash
 
+    # Try as remote branch name (remote/branch format)
+    if "/" in commit_ref:
+        remote_branch_path = hst_dir / "refs" / "remotes" / commit_ref
+        if remote_branch_path.exists():
+            try:
+                return remote_branch_path.read_text().strip()
+            except OSError:
+                pass
+
     # Try as branch name
     branch_path = hst_dir / "refs" / "heads" / commit_ref
     if branch_path.exists():
-        return branch_path.read_text().strip()
+        try:
+            return branch_path.read_text().strip()
+        except OSError:
+            pass
 
     return None
 
@@ -54,14 +67,14 @@ def resolve_commit_ref(hst_dir: Path, commit_ref: str) -> Optional[str]:
 def is_ancestor(hst_dir: Path, ancestor_oid: str, descendant_oid: str) -> bool:
     """
     Check if ancestor_oid is an ancestor of descendant_oid.
-    
+
     Walk back through the commit history from descendant to see if we reach ancestor.
-    
+
     Args:
         hst_dir: Path to the .hst directory
         ancestor_oid: The potential ancestor commit hash
         descendant_oid: The descendant commit hash
-        
+
     Returns:
         True if ancestor_oid is an ancestor of descendant_oid
     """

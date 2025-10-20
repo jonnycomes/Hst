@@ -3,6 +3,8 @@ from typing import Dict, List
 from hst.repo import HST_DIRNAME
 from hst.repo.objects import read_object
 from hst.repo.utils import path_matches_filter
+from hst.repo.index import write_index, read_index
+from hst.repo.head import get_current_commit_oid
 from hst.components import Commit, Tree, Blob
 
 
@@ -10,8 +12,6 @@ def checkout_commit(hst_dir: Path, repo_root: Path, commit_oid: str):
     """
     Update the working directory and index to match the given commit.
     """
-    from hst.repo.index import write_index
-    
     # Read the commit object
     commit_obj = read_object(hst_dir, commit_oid, Commit, store=False)
     if not commit_obj:
@@ -38,8 +38,6 @@ def checkout_from_commit(hst_dir: Path, repo_root: Path, commit_oid: str):
     Restore working directory and index from a commit without clearing first.
     This is useful for operations like clone where the working directory is already empty.
     """
-    from hst.repo.index import write_index
-    
     # Read the commit object
     commit_obj = read_object(hst_dir, commit_oid, Commit, store=False)
     if not commit_obj:
@@ -149,11 +147,6 @@ def check_for_staged_changes(hst_dir: Path) -> bool:
     Check if there are staged changes that differ from HEAD.
     Returns True if there are staged changes, False otherwise.
     """
-    from hst.repo.head import get_current_commit_oid
-    from hst.repo.objects import read_object
-    from hst.repo.index import read_index
-    from hst.components import Commit
-
     # Read current index
     index = read_index(hst_dir)
 

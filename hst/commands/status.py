@@ -5,7 +5,11 @@ from hst.repo.head import get_current_commit_oid, get_current_branch
 from hst.repo.index import read_index
 from hst.repo.objects import read_object
 from hst.repo.worktree import read_tree_recursive, scan_working_tree
-from hst.repo.utils import parse_path_arguments, filter_dict_by_paths, path_matches_filter
+from hst.repo.utils import (
+    parse_path_arguments,
+    filter_dict_by_paths,
+    path_matches_filter,
+)
 from hst.components import Commit
 from hst.colors import RED, GREEN, RESET
 
@@ -106,5 +110,3 @@ def _classify_changes(
                 unstaged.append((path, "modified"))
 
     return staged, unstaged, untracked
-
-

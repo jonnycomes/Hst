@@ -263,5 +263,3 @@ def _show_unified_diff(lines1: List[str], lines2: List[str]):
             else:
                 # Context line (unchanged)
                 print(line)
-
-

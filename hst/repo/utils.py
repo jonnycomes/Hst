@@ -5,14 +5,14 @@ from typing import List
 def parse_path_arguments(argv: List[str], repo_root: Path) -> List[str]:
     """
     Parse and validate path arguments from command line.
-    
+
     Returns a list of normalized relative paths from repo root.
     Filters out paths that are outside the repository or cannot be resolved.
-    
+
     Args:
         argv: List of path arguments from command line
         repo_root: Root path of the repository
-        
+
     Returns:
         List of normalized relative paths from repo root
     """
@@ -47,18 +47,18 @@ def filter_dict_by_paths(
 ) -> dict:
     """
     Filter a dictionary by paths using a custom filter function.
-    
+
     Args:
         data_dict: Dictionary to filter
         filter_paths: List of paths to match against
         path_filter_func: Function that takes (path, filter_paths) and returns bool
-        
+
     Returns:
         Filtered dictionary
     """
     if not filter_paths:
         return data_dict
-    
+
     filtered = {}
     for path, value in data_dict.items():
         if path_filter_func(path, filter_paths):
