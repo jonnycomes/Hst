@@ -1,4 +1,5 @@
-# Hst: Learning Git by Rebuilding It (slower, smaller, in Python)
+# Hst
+## Learning Git by Rebuilding It (slower, smaller, in Python)
 
 **Hst** (pronounced Hist -- short for History) is a personal project to help me learn about Git internals by implementing a simplified version of Git in Python. This project is for educational purposes and is not intended to be a fully-featured Git alternative.
 
