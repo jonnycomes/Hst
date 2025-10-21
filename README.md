@@ -79,8 +79,7 @@ hst commit -m "commit message"
 - ✅ `hst merge --continue`
 
 ### `log`
-- ✅ `hst log`
-- ✅ `hst log --oneline`
+- ✅ `hst log [--oneline] [-n] [<branch>]`
 - ◻️ `hst log --graph`
 
 ### `rebase`

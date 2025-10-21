@@ -15,11 +15,25 @@ def run(argv: List[str]):
     Run the log command.
 
     Usage:
-    hst log [--oneline] [<commit>...] - Show commit history
+    hst log [--oneline] [-<n>] [<commit>...] - Show commit history
     """
-    # Parse arguments - separate flags from commit references
+    # Parse arguments - separate flags, limit, and commit references
     oneline = "--oneline" in argv
-    commit_refs = [arg for arg in argv if not arg.startswith("--")]
+    max_commits = None
+    commit_refs = []
+
+    for arg in argv:
+        if arg == "--oneline":
+            continue
+        elif arg.startswith("-") and arg[1:].isdigit():
+            # Numeric limit like -5, -10, etc.
+            max_commits = int(arg[1:])
+        elif not arg.startswith("-"):
+            # Commit reference
+            commit_refs.append(arg)
+        else:
+            print(f"Unknown option: {arg}")
+            sys.exit(1)
 
     repo_root, hst_dir = get_repo_paths()
 
@@ -45,10 +59,12 @@ def run(argv: List[str]):
     # Walk the commit history from all starting points
     if len(starting_commits) == 1:
         # Single starting commit - use the original simple history walk
-        commits = _get_commit_history(hst_dir, starting_commits[0])
+        commits = _get_commit_history(hst_dir, starting_commits[0], max_commits)
     else:
         # Multiple starting commits - merge their histories
-        commits = _get_commit_history_from_multiple(hst_dir, starting_commits)
+        commits = _get_commit_history_from_multiple(
+            hst_dir, starting_commits, max_commits
+        )
 
     if not commits:
         print("No commits found")
@@ -65,9 +81,16 @@ def run(argv: List[str]):
         _display_full(commits, commit_to_branches, current_branch)
 
 
-def _get_commit_history(hst_dir: Path, start_commit_oid: str) -> List[tuple]:
+def _get_commit_history(
+    hst_dir: Path, start_commit_oid: str, max_commits: int = None
+) -> List[tuple]:
     """
     Walk the commit history starting from the given commit.
+
+    Args:
+        hst_dir: Path to .hst directory
+        start_commit_oid: Starting commit hash
+        max_commits: Maximum number of commits to return (None for unlimited)
 
     Returns:
         List of (commit_oid, commit_obj) tuples in reverse chronological order
@@ -85,6 +108,10 @@ def _get_commit_history(hst_dir: Path, start_commit_oid: str) -> List[tuple]:
             break
 
         commits.append((current_oid, commit_obj))
+
+        # Check if we've reached the limit
+        if max_commits is not None and len(commits) >= max_commits:
+            break
 
         # Move to parent commit (simplified - just take first parent)
         if commit_obj.parents and commit_obj.parents[0]:
@@ -222,12 +249,17 @@ def _format_timestamp(timestamp: int) -> str:
 
 
 def _get_commit_history_from_multiple(
-    hst_dir: Path, start_commit_oids: List[str]
+    hst_dir: Path, start_commit_oids: List[str], max_commits: int = None
 ) -> List[tuple]:
     """
     Walk the commit history starting from multiple commits, merging the results.
 
     For multiple commits, this shows all commits reachable from any of the starting commits.
+
+    Args:
+        hst_dir: Path to .hst directory
+        start_commit_oids: List of starting commit hashes
+        max_commits: Maximum number of commits to return (None for unlimited)
 
     Returns:
         List of (commit_oid, commit_obj) tuples in reverse chronological order
@@ -236,7 +268,7 @@ def _get_commit_history_from_multiple(
 
     # Gather commits from all starting points
     for start_oid in start_commit_oids:
-        commits = _get_commit_history(hst_dir, start_oid)
+        commits = _get_commit_history(hst_dir, start_oid, max_commits)
         for commit_oid, commit_obj in commits:
             if commit_oid not in all_commits:
                 all_commits[commit_oid] = (commit_oid, commit_obj)
@@ -245,5 +277,9 @@ def _get_commit_history_from_multiple(
     sorted_commits = sorted(
         all_commits.values(), key=lambda x: x[1].author_timestamp, reverse=True
     )
+
+    # Apply limit after sorting if specified
+    if max_commits is not None:
+        sorted_commits = sorted_commits[:max_commits]
 
     return sorted_commits
